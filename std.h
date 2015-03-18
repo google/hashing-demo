@@ -31,10 +31,6 @@ namespace std {
 template <typename T, typename Enable = void>
 struct is_uniquely_represented : false_type {};
 
-template <typename T>
-extern constexpr bool is_uniquely_represented_v =
-    is_uniquely_represented<T>::value;
-
 // The standard must guarantee that this specialization is present, and
 // true, so that hash_value() recursion is guaranteed to eventually
 // reach a uniquely-represented type.

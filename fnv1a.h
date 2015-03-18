@@ -29,7 +29,7 @@ class fnv1a {
 
   // Generic recursive case of hash_combine.
   template <typename T, typename... Ts>
-  friend std::enable_if_t<!std::is_uniquely_represented_v<T>,
+  friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
     return hash_combine(hash_value(hash_code, value), values...);
@@ -38,7 +38,7 @@ class fnv1a {
   // Base case of hash_combine: hash the bytes directly once we reach a
   // uniquely-represented type.
   template <typename T, typename... Ts>
-  friend std::enable_if_t<std::is_uniquely_represented_v<T>,
+  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
     unsigned char const* bytes = static_cast<unsigned char const*>(&value);
