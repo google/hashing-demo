@@ -35,9 +35,12 @@ namespace std {
 using default_hash = ::hashing::fnv1a;
 
 template <typename T, typename HashAlgorithm = default_hash>
-struct hasher {
-  typename HashAlgorithm::result_type operator()(const T& value) const {
-    return hash_combine(HashAlgorithm{}, value);
+class hasher {
+  using result_type = typename HashAlgorithm::result_type;
+
+ public:
+  result_type operator()(const T& value) const {
+    return static_cast<result_type>(hash_combine(HashAlgorithm{}, value));
   }
 };
 

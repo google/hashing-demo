@@ -41,7 +41,7 @@ class fnv1a {
   friend std::enable_if_t<std::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
-    unsigned char const* bytes = static_cast<unsigned char const*>(&value);
+    unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
     return hash_combine(
         hash_combine_range(hash_code, bytes, bytes + sizeof(value)), values...);
   }
@@ -59,6 +59,7 @@ class fnv1a {
       fnv1a>
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
     while (begin != end) {
+      using std::hash_value;
       hash_code = hash_value(hash_code, *begin);
       ++begin;
     }
@@ -75,6 +76,7 @@ class fnv1a {
               typename std::iterator_traits<InputIterator>::value_type>::value,
       fnv1a>
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
+    using std::adl_pointer_from;
     const unsigned char* begin_ptr =
         static_cast<const unsigned char*>(adl_pointer_from(begin));
     const unsigned char* end_ptr =
