@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EXPERIMENTAL_GROMER_STD_H
-#define EXPERIMENTAL_GROMER_STD_H
+#ifndef HASHING_DEMO_STD_H
+#define HASHING_DEMO_STD_H
 
 #include <memory>
 #include <tuple>
@@ -191,4 +191,4 @@ T* adl_pointer_from(T* ptr) { return ptr; }
 
 }  // namespace std
 
-#endif  // EXPERIMENTAL_GROMER_STD_H
+#endif  // HASHING_DEMO_STD_H

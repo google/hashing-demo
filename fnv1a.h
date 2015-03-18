@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EXPERIMENTAL_GROMER_FNV1A_H
-#define EXPERIMENTAL_GROMER_FNV1A_H
+#ifndef HASHING_DEMO_FNV1A_H
+#define HASHING_DEMO_FNV1A_H
 
 #include "std.h"
 
@@ -150,4 +150,4 @@ class type_invariant_fnv1a {
 
 }  // namespace hashing
 
-#endif  // EXPERIMENTAL_GROMER_FNV1A_H
+#endif  // HASHING_DEMO_FNV1A_H
