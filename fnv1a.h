@@ -27,6 +27,8 @@ class fnv1a {
  public:
   using result_type = size_t;
 
+  fnv1a() {}
+
   // Generic recursive case of hash_combine.
   template <typename T, typename... Ts>
   friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
@@ -88,7 +90,7 @@ class fnv1a {
     return hash_code;
   }
 
-  explicit operator result_type() noexcept { return state_; }
+  operator result_type() noexcept { return state_; }
 
  private:
   static size_t mix(fnv1a hash_code, unsigned char c) {

@@ -34,15 +34,24 @@ namespace std {
 
 using default_hash = ::hashing::fnv1a;
 
-template <typename T, typename HashAlgorithm = default_hash>
+template <typename T, typename HashCode = default_hash>
 class hasher {
-  using result_type = typename HashAlgorithm::result_type;
+  using result_type = typename HashCode::result_type;
 
  public:
   result_type operator()(const T& value) const {
-    return static_cast<result_type>(hash_combine(HashAlgorithm{}, value));
+    // This is the user-facing API for computing a hash value. The one
+    // noteworthy constraint is that hash_combine() might return a proxy,
+    // which might be invalidated when hash_combine's first argument is
+    // destroyed.
+    //
+    // FIXME: can we make hash_value work here, by having hash_value pass
+    // by rvalue-ref?
+    return hash_combine(HashCode(), value);
   }
 };
+
+// FIXME: consider single-argument hash_value overload
 
 }  // namespace std
 
