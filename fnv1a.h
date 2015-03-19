@@ -83,6 +83,11 @@ class fnv1a {
         static_cast<const unsigned char*>(adl_pointer_from(begin));
     const unsigned char* end_ptr =
         static_cast<const unsigned char*>(adl_pointer_from(end));
+    return hash_combine_range(hash_code, begin_ptr, end_ptr);
+  }
+
+  friend fnv1a hash_combine_range(
+      fnv1a hash_code, const unsigned char* begin, const unsigned char* end) {
     while (begin < end) {
       hash_code.state_ = mix(hash_code, *begin);
       ++begin;
@@ -90,7 +95,7 @@ class fnv1a {
     return hash_code;
   }
 
-  operator result_type() noexcept { return state_; }
+  operator result_type() && noexcept { return state_; }
 
  private:
   static size_t mix(fnv1a hash_code, unsigned char c) {
