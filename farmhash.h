@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// FarmHash implementation, based on Hash64() from
+// FarmHash implementation, based on farmhashna::Hash64() from
 // https://code.google.com/p/farmhash by Geoff Pike.
 
 #ifndef HASHING_DEMO_FARMHASH_H
@@ -214,10 +214,10 @@ class farmhash::proxy {
   hash_combine_range(proxy hash_code, InputIterator begin, InputIterator end) {
     using std::adl_pointer_from;
     const unsigned char* begin_ptr =
-        static_cast<const unsigned char*>(adl_pointer_from(begin));
+        reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
     const unsigned char* end_ptr =
-        static_cast<const unsigned char*>(adl_pointer_from(end));
-    return hash_combine_range(std::move(hash_code), begin, end);
+        reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
+    return hash_combine_range(std::move(hash_code), begin_ptr, end_ptr);
   }
 
   friend proxy hash_combine_range(
