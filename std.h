@@ -44,10 +44,7 @@ class hasher {
     // noteworthy constraint is that hash_combine() might return a proxy,
     // which might be invalidated when hash_combine's first argument is
     // destroyed.
-    //
-    // FIXME: can we make hash_value work here, by having hash_value pass
-    // by rvalue-ref?
-    return hash_combine(HashCode(), value);
+    return hash_value(HashCode(), value);
   }
 };
 
