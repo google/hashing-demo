@@ -55,8 +55,11 @@ class farmhash {
   farmhash(farmhash&&) = default;
   farmhash& operator=(farmhash&&) = default;
 
-  farmhash() = default;
   explicit farmhash(size_t result) : result_(result) {}
+
+  // This implementation ensures that a default-constructed farmhash
+  // is equivalent to hash_combine(farmhash{}).
+  farmhash() : farmhash(k2) {}
 
   template <typename... Ts>
   friend farmhash hash_combine(farmhash state, Ts... values);
@@ -70,6 +73,11 @@ class farmhash {
  private:
   class state;
   class proxy;
+
+  // Some primes between 2^63 and 2^64 for various uses.
+  static constexpr uint64_t k0 = 0xc3a5c85c97cb3127ULL;
+  static constexpr uint64_t k1 = 0xb492b66fbe98f273ULL;
+  static constexpr uint64_t k2 = 0x9ae16a3b2f90404fULL;
 };
 
 class farmhash::state {
@@ -96,11 +104,6 @@ class farmhash::state {
   friend class farmhash::proxy;
 
   static constexpr uint64_t kSeed = 81;
-
-  // Some primes between 2^63 and 2^64 for various uses.
-  static constexpr uint64_t k0 = 0xc3a5c85c97cb3127ULL;
-  static constexpr uint64_t k1 = 0xb492b66fbe98f273ULL;
-  static constexpr uint64_t k2 = 0x9ae16a3b2f90404fULL;
 
   // Misc. low-level hashing utilities.
   inline static uint64_t Fetch64(const unsigned char *p);
@@ -253,7 +256,7 @@ class farmhash::proxy {
     return hash_code;
   }
 
-  operator result_type() {
+  operator result_type() && {
     const size_t len =
         buffer_next_ - reinterpret_cast<unsigned char*>(state_->buffer_);
     if (!mixed_) {

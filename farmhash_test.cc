@@ -32,8 +32,8 @@ uint64_t HashLen16(uint64_t u, uint64_t v) {
   return b;
 }
 
+// Adapt our API to the one the test fixture expects
 uint64_t Hash64(const char* s, size_t len) {
-  // Inject our implementation into the existing test infrastructure
   return hash_combine_range(hashing::farmhash(), s, s + len);
 }
 
