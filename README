@@ -87,33 +87,34 @@ symmetric, and transitive), and is defined inductively as follows:
 
 Hashable type requirements
 ====
-A type T models the Hashable concept if the expression "hash_value(h, t)"
+A type T models the Hashable concept if the expression "hash_decompose(h, t)"
 is well-formed for any rvalue t of type T and any object h whose type H
 is a model of HashCode, and that expression yields an rvalue of type H.
 If h1 and h2 are equivalent rvalues of type H, t1 and t2 are possibly-const
-rvalues of type T, then hash_value(h1, t1) and hash_value(h2, t2) must be
-equivalent if t1 == t2, and must not be equivalent otherwise. To avoid
-infinite recursion, the evaluation of hash_value(h, t) must not directly or
-indirectly invoke hash_value(hh, t), where hh is any value of type H.
+rvalues of type T, then hash_decompose(h1, t1) and hash_decompose(h2, t2)
+must be equivalent if t1 == t2, and must not be equivalent otherwise. To avoid
+infinite recursion, the evaluation of hash_decompose(h, t) must not directly or
+indirectly invoke hash_decompose(hh, t), where hh is any value of type H.
 
 Limiting recursion
 ====
-These requirements imply that hash_value must be implemented in terms of
+These requirements imply that hash_decompose must be implemented in terms of
 hash_combine and hash_combine_range (except in the degenerate case that
 all values of T are equal). By the same token, in the general case
 hash_combine and hash_combine_range must be implemented in terms of
-hash_value. However, they also supply the base case for the recursion:
-hash_combine and hash_combine_range must not invoke hash_value on
+hash_decompose. However, they also supply the base case for the recursion:
+hash_combine and hash_combine_range must not invoke hash_decompose on
 unsigned char, which is the type of raw bytes and therefore the 'most
 primitive' type. They may also choose to treat other types as primitive, as
 an optimization.
 
-If they do call hash_value, hash_combine and hash_combine_range must only
-call hash_value directly on the input values; they may not decompose or
-combine them. This enables hash_value to avoid infinite recursion, since it
-can predict what types hash_value will be recursively called on. Thus,
-hash_value for type T must invoke hash_combine/hash_combine_range on types
-that are in some sense more primitive than T.
+If they do call hash_decompose, hash_combine and hash_combine_range must only
+call hash_decompose directly on the input values; they may not transform the
+inputs in any way (e.g. manually decomposing them or combining them). This
+enables hash_decompose to avoid infinite recursion, since it can predict what
+types hash_decompose will be recursively called on. Thus, hash_decompose for
+type T must invoke hash_combine/hash_combine_range on types that are in some
+sense more primitive than T (as the name suggests).
 
 Uniquely represented types
 ====
@@ -149,9 +150,9 @@ of related types, such as string-like types and pointer-like types
 transitive within integral types).
 
 Achieving this property requires cooperation between the hash algorithm
-and the types being hashed. hash_value must be written so as to provide
+and the types being hashed. hash_decompose must be written so as to provide
 the aforementioned guarantee, and hash_combine/hash_combine_range must
-ensure that the recursion reaches that hash_value call. The optimizations
+ensure that the recursion reaches that hash_decompose call. The optimizations
 described above for uniquely-represented types cannot be applied in
 this case, because even if the types are uniquely represented, particular
 values may not have a unique representation across types. Consequently,
