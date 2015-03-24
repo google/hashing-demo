@@ -13,8 +13,24 @@ User-facing API
 The user-facing API for hashing a value 'v' using a hash algorithm H looks
 like this:
 
-using std::hash_value;
-H::result_type result = hash_value(H(), v);
+typename H::result_type result = std::hash_value<H>(v);
+
+The H parameter is defaulted, so this can be called more simply if you
+don't care about the hash algorithm:
+
+size_t result = std::hash_value(v);
+
+There is also a functor interface akin to std::hash:
+
+std::hasher h1;
+size_t result1 = h1(v);
+std::hasher<H> h2;
+typename H::result_type result2 = h2(v);
+
+These are all wrappers around the following basic interface:
+
+typename H::state_type state;
+auto result = typename H::result_type(hash_combine(H(&state), v));
 
 v's type must model the Hashable concept, which specifies the requirements
 a type must satisfy in order to compute its hash value. H must model the
@@ -29,19 +45,21 @@ type H:
 
 Expression                    Notes
 ----                          ----
-H::result_type                H must be implicitly convertible to result_type
-H()
+H::result_type                Names a type
+H::state_type                 Names a type
+H(&s)                         's' is an lvalue of type H::state_type
 H(h)
 hash_combine(h, vs...)        Returns an rvalue of type H. 'vs...' represents
                               an arbitrary number of Hashable arguments
 hash_combine_range(h, i, j)   Returns an rvalue of type H. 'i' and 'j' are
                               InputIterators that form a valid range, whose
                               value_type is Hashable.
+typename H::result_type(h)
 
 Values of a type H that models the HashCode concept represent intermediate
 states in the computation of the hash value. As such, they also implicitly
 represent the final hash value which would be derived from that state (hence
-the name "HashCode"); that value can be obtained by implicitly converting the
+the name "HashCode"). That final hash value can be obtained by converting the
 H value to H::result_type. hash_combine and hash_combine_range combine an
 existing state with some input values to produce a new state.
 
@@ -51,7 +69,8 @@ they must yield non-equal values when converted to H::result_type.
 "Equivalence" between H values is an equivalence relation (reflexive,
 symmetric, and transitive), and is defined inductively as follows:
 
-* H() is equivalent to H().
+* H(&s1) is equivalent to H(&s2), where s1 and s2 are default-constructed
+  state_type objects.
 * If h1 and h2 are rvalues of type H, and h1 is equivalent to h2, then:
   * H(h1) is equivalent to H(h2).
   * hash_combine(h1) is equivalent to h2.

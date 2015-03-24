@@ -25,16 +25,11 @@
 #include "fnv1a.h"
 #include "std.h"
 
-template <typename T, typename U>
-T implicit_cast(U&& t) {
-  return std::forward<U>(t);
-}
-
 template <typename H>
 class TestHashCode {
  public:
   void Run() {
-    TestDefaultConstruction();
+    TestInitialConstruction();
     TestNoOpCombine();
     TestHashCombineIntegralType<int>();
     TestHashCombineIntegralType<unsigned int>();
@@ -46,49 +41,56 @@ class TestHashCode {
 
  private:
   using result_type = typename H::result_type;
+  using state_type = typename H::state_type;
 
-  bool Equal(result_type r1, result_type r2) {
-    return r1 == r2;
+  struct StateAndH {
+    StateAndH() : h(&state) {}
+    state_type state;
+    H h;
+  };
+
+  bool Equal(H h1, H h2) {
+    return result_type(std::move(h1)) == result_type(std::move(h2));
   }
 
-  bool NotEqual(result_type r1, result_type r2) {
-    return r1 != r2;
+  bool NotEqual(H h1, H h2) {
+    return result_type(std::move(h1)) != result_type(std::move(h2));
   }
 
-  void TestDefaultConstruction() {
-    H h1, h2;
-    assert(Equal(std::move(h1), std::move(h2)));
-    assert(Equal(H(), H()));
+  void TestInitialConstruction() {
+    assert(Equal(StateAndH().h, StateAndH().h));
   }
 
   void TestNoOpCombine() {
-    assert(Equal(hash_combine(H()), H()));
+    assert(Equal(hash_combine(StateAndH().h), StateAndH().h));
     std::vector<int> v;
-    assert(Equal(hash_combine_range(H(), v.begin(), v.end()), H()));
+    assert(Equal(hash_combine_range(StateAndH().h, v.begin(), v.end()),
+                 StateAndH().h));
   }
 
   template <typename Int>
   void TestHashCombineIntegralType() {
     using limits = std::numeric_limits<Int>;
-    assert(NotEqual(hash_combine(H(), Int(0)), H()));
-    assert(NotEqual(hash_combine(H(), limits::max()), H()));
-    assert(NotEqual(hash_combine(H(), limits::min()), H()));
+    assert(NotEqual(hash_combine(StateAndH().h, Int(0)), StateAndH().h));
+    assert(NotEqual(hash_combine(StateAndH().h, limits::max()), StateAndH().h));
+    assert(NotEqual(hash_combine(StateAndH().h, limits::min()), StateAndH().h));
 
-    H h;
+    StateAndH s;
     for (int i = 0; i < 5; ++i) {
-      h = hash_combine(std::move(h), Int(i));
+      s.h = hash_combine(std::move(s.h), Int(i));
     }
-    assert(Equal(std::move(h),
-                 hash_combine(H(), Int(0), Int(1), Int(2), Int(3), Int(4))));
+    assert(Equal(std::move(s.h),
+                 hash_combine(StateAndH().h,
+                              Int(0), Int(1), Int(2), Int(3), Int(4))));
 
-    h = H();
+    StateAndH s2;
     for (int i = 0; i < 10; ++i) {
-      h = hash_combine(std::move(h), Int(i));
+      s2.h = hash_combine(std::move(s2.h), Int(i));
     }
     std::vector<Int> v(10);
     std::iota(v.begin(), v.end(), Int(0));
-    assert(Equal(std::move(h),
-                 hash_combine_range(H(), v.begin(), v.end())));
+    assert(Equal(std::move(s2.h),
+                 hash_combine_range(StateAndH().h, v.begin(), v.end())));
   }
 };
 

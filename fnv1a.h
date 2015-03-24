@@ -25,16 +25,17 @@ class fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
+  struct state_type{};
   using result_type = size_t;
 
-  fnv1a() {}
+  fnv1a(state_type* /* unused */) {}
 
   // Generic recursive case of hash_combine.
   template <typename T, typename... Ts>
   friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
-    return hash_combine(hash_value(hash_code, value), values...);
+    return hash_combine(hash_decompose(hash_code, value), values...);
   }
 
   // Base case of hash_combine: hash the bytes directly once we reach a
@@ -61,8 +62,8 @@ class fnv1a {
       fnv1a>
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
     while (begin != end) {
-      using std::hash_value;
-      hash_code = hash_value(hash_code, *begin);
+      using std::hash_decompose;
+      hash_code = hash_decompose(hash_code, *begin);
       ++begin;
     }
     return hash_code;
@@ -95,7 +96,7 @@ class fnv1a {
     return hash_code;
   }
 
-  operator result_type() && noexcept { return state_; }
+  explicit operator result_type() && noexcept { return state_; }
 
  private:
   static size_t mix(fnv1a hash_code, unsigned char c) {
@@ -111,9 +112,11 @@ class type_invariant_fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
+  struct state_type {};
   using result_type = size_t;
 
-  type_invariant_fnv1a() = default;
+  type_invariant_fnv1a(state_type* /* unused */) {}
+
   type_invariant_fnv1a(const type_invariant_fnv1a&) = delete;
   type_invariant_fnv1a& operator=(const type_invariant_fnv1a&) = delete;
   type_invariant_fnv1a(type_invariant_fnv1a&&) = default;
@@ -122,8 +125,8 @@ class type_invariant_fnv1a {
   template <typename T, typename... Ts>
   friend type_invariant_fnv1a hash_combine(
       type_invariant_fnv1a hash_code, const T& value, const Ts&... values) {
-    using std::hash_value;
-    return hash_combine(hash_value(std::move(hash_code), value), values...);
+    using std::hash_decompose;
+    return hash_combine(hash_decompose(std::move(hash_code), value), values...);
   }
 
   template <typename... Ts>
@@ -140,9 +143,9 @@ class type_invariant_fnv1a {
   template <typename InputIterator>
   friend type_invariant_fnv1a hash_combine_range(
       type_invariant_fnv1a hash_code, InputIterator begin, InputIterator end) {
-    using std::hash_value;
+    using std::hash_decompose;
     while (begin != end) {
-      hash_code = hash_value(std::move(hash_code), *begin);
+      hash_code = hash_decompose(std::move(hash_code), *begin);
       ++begin;
     }
     return hash_code;
