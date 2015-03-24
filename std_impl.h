@@ -19,6 +19,8 @@
 // to be usable as default_hash should include this header rather than
 // std.h, to avoid circular dependencies.
 
+#include <cstddef>
+
 namespace std {
 
 // is_uniquely_represented type trait
@@ -131,6 +133,11 @@ hash_value(HashCode code, Float value) {
 template <typename HashCode, typename T>
 HashCode hash_value(HashCode code, T* ptr) {
   return detail::hash_bytes(move(code), ptr);
+}
+
+template <typename HashCode>
+HashCode hash_value(HashCode code, nullptr_t p) {
+  return hash_combine(code, static_cast<unsigned char>(0));
 }
 
 // hash_value overload for all range types (i.e. types that support begin(r)

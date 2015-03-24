@@ -113,16 +113,24 @@ class type_invariant_fnv1a {
  public:
   using result_type = size_t;
 
+  type_invariant_fnv1a() = default;
+  type_invariant_fnv1a(const type_invariant_fnv1a&) = delete;
+  type_invariant_fnv1a& operator=(const type_invariant_fnv1a&) = delete;
+  type_invariant_fnv1a(type_invariant_fnv1a&&) = default;
+  type_invariant_fnv1a& operator=(type_invariant_fnv1a&&) = default;
+
   template <typename T, typename... Ts>
   friend type_invariant_fnv1a hash_combine(
       type_invariant_fnv1a hash_code, const T& value, const Ts&... values) {
-    return hash_combine(hash_value(hash_code, value), values...);
+    using std::hash_value;
+    return hash_combine(hash_value(std::move(hash_code), value), values...);
   }
 
   template <typename... Ts>
   friend type_invariant_fnv1a hash_combine(
       type_invariant_fnv1a hash_code, unsigned char c, const Ts&... values) {
-    return hash_combine(mix(hash_code, c), values...);
+    return hash_combine(type_invariant_fnv1a(mix(std::move(hash_code), c)),
+                        values...);
   }
 
   friend type_invariant_fnv1a hash_combine(type_invariant_fnv1a hash_code) {
@@ -132,8 +140,9 @@ class type_invariant_fnv1a {
   template <typename InputIterator>
   friend type_invariant_fnv1a hash_combine_range(
       type_invariant_fnv1a hash_code, InputIterator begin, InputIterator end) {
+    using std::hash_value;
     while (begin != end) {
-      hash_code = hash_value(hash_code, *begin);
+      hash_code = hash_value(std::move(hash_code), *begin);
       ++begin;
     }
     return hash_code;
@@ -143,15 +152,17 @@ class type_invariant_fnv1a {
       type_invariant_fnv1a hash_code, unsigned char const* begin,
       unsigned char const* end) {
     while (begin < end) {
-      hash_code.state_ = mix(hash_code, *begin);
+      hash_code.state_ = mix(std::move(hash_code), *begin);
       ++begin;
     }
     return hash_code;
   }
 
-  explicit operator result_type() noexcept { return state_; }
+  operator result_type() noexcept { return state_; }
 
  private:
+  type_invariant_fnv1a(result_type state) : state_(state) {}
+
   static size_t mix(type_invariant_fnv1a hash_code, unsigned char c) {
     return (hash_code.state_ ^ c) * 1099511628211u;
   }

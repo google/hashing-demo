@@ -115,7 +115,9 @@ library types should be sufficient for most cases, but users can also
 specialize it for their types, if necessary. Note that
 is_uniquely_represented<T> is always false unless explicitly specialized;
 the compiler cannot reasonably deduce a correct value since it's a
-high-level semantic property.
+high-level semantic property. is_uniquely_represented<unsigned char> is
+required to be true, but is implementation-defined for all other
+standard types (unless there's existing wording to support that guarantee).
 
 Heterogeneous lookup
 ====
