@@ -13,20 +13,20 @@ using this framework, but are not themselves proposed for standardization.
 The user-facing API for hashing a value `v` using a hash algorithm `H` looks
 like this:
 
-```
+```C++
 typename H::result_type result = std::hash_value<H>(v);
 ```
 
 The `H` parameter is defaulted, so this can be called more simply if you
 don't care about the hash algorithm:
 
-```
+```C++
 size_t result = std::hash_value(v);
 ```
 
 There is also a functor interface akin to `std::hash`:
 
-```
+```C++
 std::hasher h1;
 size_t result1 = h1(v);
 std::hasher<H> h2;
@@ -35,7 +35,7 @@ typename H::result_type result2 = h2(v);
 
 These are all wrappers around the following basic interface:
 
-```
+```C++
 typename H::state_type state;
 auto result = typename H::result_type(hash_combine(H(&state), v));
 ```
@@ -51,22 +51,15 @@ A type `H` models the `HashCode` concept if the following expressions are
 well-formed, and have the semantics described below, where `h` is an rvalue of
 type `H`:
 
-<table>
-<tr><th>Expression</th><th>Notes</th></tr>
-<tr><td><code>H::result_type</code></td><td>Names a type.</td></tr>
-<tr><td><code>H::state_type</code></td><td>Names a type.</td></tr>
-<tr><td><code>H(&s)</code></td><td><code>s</code> is an lvalue of type 
-<code>H::state_type</code>.</td></tr>
-<tr><td><code>H(h)</code></td><td></td></tr>
-<tr><td><code>hash_combine(h, vs...)</code></td><td>Returns an rvalue of type
-<code>H</code>. <code>vs...</code> represents an arbitrary number of
-<code>Hashable</code> arguments.</td></tr>
-<tr><td><code>hash_combine_range(h, i, j)</code></td><td>Returns an rvalue
-of type <code>H</code>. <code>i</code> and <code>j</code> are
-<code>InputIterator</code>s that form a valid range, whose
-<code>value_type</code> is <code>Hashable</code>.</td></tr>
-<tr><td><code>typename H::result_type(h)</code</td><td></td></tr>
-</table>
+Expression | Notes
+---------- | -----
+`H::result_type` | Names a type.
+`H::state_type` | Names a type.
+`H(&s)` | `s` is an lvalue of type `H::state_type`.
+`H(h)` |
+`hash_combine(h, vs...)` | Returns an rvalue of type `H`. `vs...` represents an arbitrary number of `Hashable` arguments.
+`hash_combine_range(h, i, j)` | Returns an rvalue of type `H`. `i` and <code>`j</code>` are `InputIterator`s that form a valid range, whose `value_type` is `Hashable`.
+`typename H::result_type(h)` |
 
 Values of a type `H` that models the `HashCode` concept represent intermediate
 states in the computation of the hash value. As such, they also implicitly
