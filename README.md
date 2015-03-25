@@ -58,7 +58,7 @@ Expression | Notes
 `H(&s)` | `s` is an lvalue of type `H::state_type`.
 `H(h)` |
 `hash_combine(h, vs...)` | Returns an rvalue of type `H`. `vs...` represents an arbitrary number of `Hashable` arguments.
-`hash_combine_range(h, i, j)` | Returns an rvalue of type `H`. `i` and <code>`j</code>` are `InputIterator`s that form a valid range, whose `value_type` is `Hashable`.
+`hash_combine_range(h, i, j)` | Returns an rvalue of type `H`. `i` and `j` are `InputIterator`s that form a valid range, whose `value_type` is `Hashable`.
 `typename H::result_type(h)` |
 
 Values of a type `H` that models the `HashCode` concept represent intermediate
