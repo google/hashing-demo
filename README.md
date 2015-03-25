@@ -6,9 +6,10 @@ and is not suitable for use in production systems. This is not an official
 Google product (experimental or otherwise), it is just code that happens
 to be owned by Google.
 
-The APIs in std.h and std_impl.h are proposed for standardization. 
-fnv1a.h and farmhash.h are example implementations of particular algorithms
-using this framework, but are not themselves proposed for standardization.
+The APIs in [std.h](std.h) and [std_impl.h](std-impl.h) are proposed for
+standardization. [fnv1a.h](fnv1a.h) and [farmhash.h](farmhash.h) are example
+implementations of particular algorithms using this framework, but are not
+themselves proposed for standardization.
 
 #User-facing API
 
