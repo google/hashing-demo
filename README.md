@@ -51,18 +51,22 @@ A type `H` models the `HashCode` concept if the following expressions are
 well-formed, and have the semantics described below, where `h` is an rvalue of
 type `H`:
 
-Expression                    Notes
-----                          ----
-`H::result_type`                Names a type
-`H::state_type`                 Names a type
-`H(&s)`                         `s` is an lvalue of type `H::state_type`.
-`H(h)`
-`hash_combine(h, vs...)`        Returns an rvalue of type `H`. `vs...` represents
-                              an arbitrary number of `Hashable` arguments
-`hash_combine_range(h, i, j)`   Returns an rvalue of type `H`. `i` and `j` are
-                              `InputIterator`s that form a valid range, whose
-                              `value_type` is `Hashable`.
-`typename H::result_type(h)`
+<table>
+<tr><th>Expression</th><th>Notes</th></tr>
+<tr><td><code>H::result_type</code></td><td>Names a type.</td></tr>
+<tr><td><code>H::state_type</code></td><td>Names a type.</td></tr>
+<tr><td><code>H(&s)</code></td><td><code>s</code> is an lvalue of type 
+<code>H::state_type</code>.</td></tr>
+<tr><td><code>H(h)</code></td><td></td></tr>
+<tr><td><code>hash_combine(h, vs...)</code></td><td>Returns an rvalue of type
+<code>H</code>. <code>vs...</code> represents an arbitrary number of
+<code>Hashable</code> arguments.</td></tr>
+<tr><td><code>hash_combine_range(h, i, j)</code></td><td>Returns an rvalue
+of type <code>H</code>. <code>i</code> and <code>j</code> are
+<code>InputIterator</code>s that form a valid range, whose
+<code>value_type</code> is <code>Hashable</code>.</td></tr>
+<tr><td><code>typename H::result_type(h)</code</td><td></td></tr>
+</table>
 
 Values of a type `H` that models the `HashCode` concept represent intermediate
 states in the computation of the hash value. As such, they also implicitly
