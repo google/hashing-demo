@@ -172,7 +172,7 @@ template <typename T, typename... Ts>
 std::enable_if_t<!std::is_uniquely_represented<T>::value,
                  farmhash>
 hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
-  return hash_combine(hash_decompose(hash_code, value), values...);
+  return hash_combine(hash_decompose(std::move(hash_code), value), values...);
 }
 
 template <typename T, typename... Ts>

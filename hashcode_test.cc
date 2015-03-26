@@ -105,9 +105,58 @@ TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
   HashCombineIntegralTypeImpl<TypeParam, unsigned long>();
 }
 
+namespace test_namespace {
+
+struct StructWithPadding {
+  char c;
+  int i;
+};
+
+static_assert(sizeof(StructWithPadding) > sizeof(char) + sizeof(int),
+              "StructWithPadding doesn't have padding");
+static_assert(std::is_trivially_constructible<StructWithPadding>::value, "");
+static_assert(std::is_standard_layout<StructWithPadding>::value, "");
+
+template <typename HashCode>
+HashCode hash_decompose(HashCode hash_code, const StructWithPadding& s) {
+  return hash_combine(std::move(hash_code), s.c, s.i);
+}
+
+}  // namespace test_namespace
+
+TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
+  // Create equal StructWithPadding objects that are known to have non-equal
+  // padding bytes.
+  using test_namespace::StructWithPadding;
+  static const size_t kNumStructs = 10;
+  unsigned char buffer1[kNumStructs * sizeof(StructWithPadding)];
+  std::memset(buffer1, 0, sizeof(buffer1));
+  auto* s1 = reinterpret_cast<StructWithPadding*>(buffer1);
+
+  unsigned char buffer2[kNumStructs * sizeof(StructWithPadding)];
+  std::memset(buffer1, 255, sizeof(buffer2));
+  auto* s2 = reinterpret_cast<StructWithPadding*>(buffer2);
+  for (int i = 0; i < kNumStructs; ++i) {
+    s1[i].c = s2[i].c = '0' + i;
+    s1[i].i = s2[i].i = i;
+  }
+  ASSERT_NE(buffer1[1], buffer2[1]);
+
+  EXPECT_TRUE(Equivalent(
+      hash_combine(StateAnd<TypeParam>().hash_code, s1[0], s1[1]),
+      hash_combine(StateAnd<TypeParam>().hash_code, s2[0], s1[1])));
+
+  EXPECT_TRUE(Equivalent(
+      hash_combine_range(StateAnd<TypeParam>().hash_code,
+                         s1, s1 + kNumStructs),
+      hash_combine_range(StateAnd<TypeParam>().hash_code,
+                         s1, s1 + kNumStructs)));
+}
+
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
                            InitialStatesAreEqual, EmptyCombineIsNoOp,
-                           HashCombineIntegralType);
+                           HashCombineIntegralType,
+                           HashNonUniquelyRepresentedType);
 
 using HashCodeTypes = ::testing::Types<
   hashing::farmhash, hashing::fnv1a, hashing::type_invariant_fnv1a>;

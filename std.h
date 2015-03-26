@@ -43,7 +43,7 @@ typename HashCode::result_type hash_value(const T& value) {
 
 template <typename T, typename HashCode = default_hash>
 struct hasher {
-  auto operator()(const T& value) const {
+  typename HashCode::result_type operator()(const T& value) const {
     return hash_value<HashCode>(value);
   }
 };
