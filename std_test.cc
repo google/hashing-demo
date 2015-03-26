@@ -16,15 +16,16 @@
 #include <string>
 #include <unordered_set>
 
+#include "gtest/gtest.h"
+
 #include "std.h"
 
-int main(int argc, const char* argv[]) {
+TEST(StdTest, UnorderedSetUsageTest) {
   std::unordered_set<int, std::hasher<int>> s1;
   s1.insert(1);
-  assert(s1.find(1) != s1.end());
+  EXPECT_TRUE(s1.find(1) != s1.end());
 
   std::unordered_set<std::string, std::hasher<std::string>> s2;
   s2.insert("foo");
-  assert(s2.find("foo") != s2.end());
-  return 0;
+  EXPECT_TRUE(s2.find("foo") != s2.end());
 }

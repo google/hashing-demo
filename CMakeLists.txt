@@ -20,6 +20,7 @@ function(add_gtest test_name)
 endfunction(add_gtest)
 
 add_gtest(hashcode_test)
-add_gtest(fnv1a_test)
-add_gtest(farmhash_test)
 add_gtest(std_test)
+
+add_executable(farmhash_golden_test farmhash_golden_test.cc)
+add_test(farmhash_golden_test farmhash_golden_test)
