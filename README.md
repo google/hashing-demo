@@ -11,6 +11,16 @@ standardization. [fnv1a.h](fnv1a.h) and [farmhash.h](farmhash.h) are example
 implementations of particular algorithms using this framework, but are not
 themselves proposed for standardization.
 
+The code uses some C++14 language and library features. It doesn't work with
+libstdc++ as of version 4.8, but it does work with libc++ 3.4. A
+[CMakeLists.txt](CMakeLists.txt) is included for building the tests with
+[CMake](http://www.cmake.org/). Example usage:
+```Shell
+$ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++-libc++ <source dir>
+$ make
+$ make test
+```
+
 #User-facing API
 
 The user-facing API for hashing a value `v` using a hash algorithm `H` looks
