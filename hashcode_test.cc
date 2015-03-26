@@ -21,82 +21,96 @@
 #include <utility>
 #include <vector>
 
+#include "gtest/gtest.h"
+
 #include "farmhash.h"
 #include "fnv1a.h"
 #include "std.h"
 
-template <typename H>
-class TestHashCode {
- public:
-  void Run() {
-    TestInitialConstruction();
-    TestNoOpCombine();
-    TestHashCombineIntegralType<int>();
-    TestHashCombineIntegralType<unsigned int>();
-    TestHashCombineIntegralType<char>();
-    TestHashCombineIntegralType<unsigned char>();
-    TestHashCombineIntegralType<long>();
-    TestHashCombineIntegralType<unsigned long>();
-  }
+namespace {
 
- private:
-  using result_type = typename H::result_type;
-  using state_type = typename H::state_type;
-
-  struct StateAndH {
-    StateAndH() : h(&state) {}
-    state_type state;
-    H h;
-  };
-
-  bool Equal(H h1, H h2) {
-    return result_type(std::move(h1)) == result_type(std::move(h2));
-  }
-
-  bool NotEqual(H h1, H h2) {
-    return result_type(std::move(h1)) != result_type(std::move(h2));
-  }
-
-  void TestInitialConstruction() {
-    assert(Equal(StateAndH().h, StateAndH().h));
-  }
-
-  void TestNoOpCombine() {
-    assert(Equal(hash_combine(StateAndH().h), StateAndH().h));
-    std::vector<int> v;
-    assert(Equal(hash_combine_range(StateAndH().h, v.begin(), v.end()),
-                 StateAndH().h));
-  }
-
-  template <typename Int>
-  void TestHashCombineIntegralType() {
-    using limits = std::numeric_limits<Int>;
-    assert(NotEqual(hash_combine(StateAndH().h, Int(0)), StateAndH().h));
-    assert(NotEqual(hash_combine(StateAndH().h, limits::max()), StateAndH().h));
-    assert(NotEqual(hash_combine(StateAndH().h, limits::min()), StateAndH().h));
-
-    StateAndH s;
-    for (int i = 0; i < 5; ++i) {
-      s.h = hash_combine(std::move(s.h), Int(i));
-    }
-    assert(Equal(std::move(s.h),
-                 hash_combine(StateAndH().h,
-                              Int(0), Int(1), Int(2), Int(3), Int(4))));
-
-    StateAndH s2;
-    for (int i = 0; i < 10; ++i) {
-      s2.h = hash_combine(std::move(s2.h), Int(i));
-    }
-    std::vector<Int> v(10);
-    std::iota(v.begin(), v.end(), Int(0));
-    assert(Equal(std::move(s2.h),
-                 hash_combine_range(StateAndH().h, v.begin(), v.end())));
-  }
+template <typename HashCode>
+struct StateAnd {
+  StateAnd() : hash_code(&state) {}
+  typename HashCode::state_type state;
+  HashCode hash_code;
 };
 
-int main(int argc, char* argv[]) {
-  TestHashCode<hashing::fnv1a>().Run();
-  TestHashCode<hashing::type_invariant_fnv1a>().Run();
-  TestHashCode<hashing::farmhash>().Run();
-  std::cout << "All tests passed" << std::endl;
+template <typename HashCode>
+bool Equivalent(HashCode h1, HashCode h2) {
+  using result_type = typename HashCode::result_type;
+  return result_type(std::move(h1)) == result_type(std::move(h2));
 }
+
+template <typename HashCode>
+class HashCodeTest : public  ::testing::Test {};
+
+TYPED_TEST_CASE_P(HashCodeTest);
+
+TYPED_TEST_P(HashCodeTest, InitialStatesAreEqual) {
+  EXPECT_TRUE(Equivalent(StateAnd<TypeParam>().hash_code,
+                         StateAnd<TypeParam>().hash_code));
+}
+
+TYPED_TEST_P(HashCodeTest, EmptyCombineIsNoOp) {
+  EXPECT_TRUE(Equivalent(hash_combine(StateAnd<TypeParam>().hash_code),
+                         StateAnd<TypeParam>().hash_code));
+  std::vector<int> v;
+  EXPECT_TRUE(Equivalent(hash_combine_range(StateAnd<TypeParam>().hash_code,
+                                            v.begin(), v.end()),
+                         StateAnd<TypeParam>().hash_code));
+}
+
+template <typename HashCode, typename Int>
+void HashCombineIntegralTypeImpl() {
+  SCOPED_TRACE(std::string("with integral type ") + typeid(Int).name());
+  using limits = std::numeric_limits<Int>;
+  EXPECT_FALSE(Equivalent(
+      hash_combine(StateAnd<HashCode>().hash_code, Int(0)),
+      StateAnd<HashCode>().hash_code));
+  EXPECT_FALSE(Equivalent(
+      hash_combine(StateAnd<HashCode>().hash_code, limits::max()),
+      StateAnd<HashCode>().hash_code));
+  EXPECT_FALSE(Equivalent(
+      hash_combine(StateAnd<HashCode>().hash_code, limits::min()),
+      StateAnd<HashCode>().hash_code));
+
+  StateAnd<HashCode> s;
+  for (int i = 0; i < 5; ++i) {
+    s.hash_code = hash_combine(std::move(s.hash_code), Int(i));
+  }
+  EXPECT_TRUE(Equivalent(
+      std::move(s.hash_code),
+      hash_combine(StateAnd<HashCode>().hash_code,
+                   Int(0), Int(1), Int(2), Int(3), Int(4))));
+
+  StateAnd<HashCode> s2;
+  for (int i = 0; i < 10; ++i) {
+    s2.hash_code = hash_combine(std::move(s2.hash_code), Int(i));
+  }
+  std::vector<Int> v(10);
+  std::iota(v.begin(), v.end(), Int(0));
+  EXPECT_TRUE(Equivalent(
+      std::move(s2.hash_code),
+      hash_combine_range(StateAnd<HashCode>().hash_code,
+                         v.begin(), v.end())));
+}
+
+TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
+  HashCombineIntegralTypeImpl<TypeParam, int>();
+  HashCombineIntegralTypeImpl<TypeParam, unsigned int>();
+  HashCombineIntegralTypeImpl<TypeParam, char>();
+  HashCombineIntegralTypeImpl<TypeParam, unsigned char>();
+  HashCombineIntegralTypeImpl<TypeParam, long>();
+  HashCombineIntegralTypeImpl<TypeParam, unsigned long>();
+}
+
+REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
+                           InitialStatesAreEqual, EmptyCombineIsNoOp,
+                           HashCombineIntegralType);
+
+using HashCodeTypes = ::testing::Types<
+  hashing::farmhash, hashing::fnv1a, hashing::type_invariant_fnv1a>;
+INSTANTIATE_TYPED_TEST_CASE_P(My, HashCodeTest, HashCodeTypes);
+
+}  // namespace

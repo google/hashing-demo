@@ -20,6 +20,11 @@ $ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++-libc++ <source dir>
 $ make
 $ make test
 ```
+The tests depend on [GoogleTest](https://code.google.com/p/googletest/),
+which must be provided separately. By default, CMake will expect to find
+the GoogleTest source in `/usr/src/gtest` and the headers in a default
+include path, but these can be configured with `-Dgtest_src_dir` and
+`-DCMAKE_INCLUDE_PATH`, respectively.
 
 #User-facing API
 
