@@ -144,7 +144,7 @@ template <typename HashCode, typename Float>
 enable_if_t<is_floating_point<Float>::value,
             HashCode>
 hash_decompose(HashCode code, Float value) {
-  return detail::hash_bytes(move(code), value);
+  return detail::hash_bytes(move(code), value == 0 ? 0 : value);
 }
 
 template <typename HashCode, typename T>

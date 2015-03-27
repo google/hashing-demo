@@ -20,7 +20,7 @@
 
 #include "std.h"
 
-TEST(StdTest, UnorderedSetUsageTest) {
+TEST(StdTest, UnorderedSetBasicUsage) {
   std::unordered_set<int, std::hasher<int>> s1;
   s1.insert(1);
   EXPECT_TRUE(s1.find(1) != s1.end());
@@ -28,4 +28,8 @@ TEST(StdTest, UnorderedSetUsageTest) {
   std::unordered_set<std::string, std::hasher<std::string>> s2;
   s2.insert("foo");
   EXPECT_TRUE(s2.find("foo") != s2.end());
+}
+
+TEST(StdTest, HashFloat) {
+  EXPECT_EQ(std::hasher<float>()(+0.0f), std::hasher<float>()(-0.0f));
 }
