@@ -20,6 +20,9 @@
 // std.h, to avoid circular dependencies.
 
 #include <cstddef>
+#include <forward_list>
+#include <string>
+#include <vector>
 
 namespace std {
 
@@ -109,6 +112,20 @@ HashCode hash_bytes(HashCode code, const T& value) {
   const unsigned char* start = reinterpret_cast<const unsigned char*>(&value);
   return hash_combine_range(move(code), start, start + sizeof(value));
 }
+
+// Requires: Container has begin(), end(), and size() methods
+template <typename HashCode, typename Container>
+HashCode hash_sized_container(
+    HashCode code, const Container& container) {
+  // Following N3980, we append the container size to the hash of all
+  // containers.
+  return hash_combine(
+      hash_combine_range(
+          std::move(code), container.begin(), container.end()),
+      // Force size_t so that the choice of container doesn't affect the
+      // hash value.
+      static_cast<size_t>(container.size()));
+}
 }  // namespace detail
 
 template <typename HashCode, typename Integral>
@@ -140,15 +157,40 @@ HashCode hash_decompose(HashCode code, nullptr_t p) {
   return hash_combine(code, static_cast<unsigned char>(0));
 }
 
-// hash_decompose overload for all range types (i.e. types that support begin(r)
-// and end(r)). Note that there is no need to further overload for
-// contiguous containers: HashCode can do that itself, assuming N4183 or
-// the equivalent is available to it.
-template <typename HashCode, typename Range, typename =
-          common_type_t<decltype(begin(declval<Range>())),
-                        decltype(end(declval<Range>()))>>
-HashCode hash_decompose(HashCode code, const Range& r) {
-  return hash_combine_range(move(code), begin(r), end(r));
+template <typename HashCode, typename T>
+HashCode hash_decompose(HashCode code, const vector<T>& v) {
+  return detail::hash_sized_container(std::move(code), v);
+}
+
+template <typename HashCode>
+HashCode hash_decompose(HashCode code, const string& s) {
+  return detail::hash_sized_container(std::move(code), s);
+}
+
+// TODO: similar overloads for deque, list, set, map, multiset, multimap.
+// Unordered containers are omitted as discussed in N3980. C-style arrays
+// are omitted because they seem unlikely to be useful, and it's not entirely
+// clear whether the size should be hashed.
+
+// I've chosen to treat std::array as a container rather than a
+// tuple-like type, meaning that the hash includes the size.
+template <typename HashCode, typename T, size_t N>
+HashCode hash_decompose(HashCode code, const array<T, N>& a) {
+  return detail::hash_sized_container(std::move(code), a);
+}
+
+template <typename HashCode, typename T>
+HashCode hash_decompose(HashCode code, const forward_list<T>& l) {
+  // We traverse the list manually rather than calling hash_combine_range,
+  // so that we can compute the size without a second traversal. As with
+  // hash_sized_container, we use size_t rather than the container's
+  // size_type, for cross-container consistency.
+  size_t size = 0;
+  for (const T& t : l) {
+    code = hash_combine(std::move(code), t);
+    ++size;
+  }
+  return hash_combine(std::move(code), size);
 }
 
 template <typename HashCode, typename T, typename D>
