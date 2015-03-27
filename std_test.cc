@@ -18,6 +18,7 @@
 
 #include "gtest/gtest.h"
 
+#include "debug.h"
 #include "std.h"
 
 TEST(StdTest, UnorderedSetBasicUsage) {
@@ -31,5 +32,6 @@ TEST(StdTest, UnorderedSetBasicUsage) {
 }
 
 TEST(StdTest, HashFloat) {
-  EXPECT_EQ(std::hasher<float>()(+0.0f), std::hasher<float>()(-0.0f));
+  EXPECT_EQ(std::hash_value<hashing::identity>(+0.0f),
+            std::hash_value<hashing::identity>(-0.0f));
 }
