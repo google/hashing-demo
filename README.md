@@ -16,7 +16,7 @@ libstdc++ as of version 4.8, but it does work with libc++ 3.4. A
 [CMakeLists.txt](CMakeLists.txt) is included for building the tests with
 [CMake](http://www.cmake.org/). Example usage:
 ```Shell
-$ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++-libc++ <source dir>
+$ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++-libc++ $SOURCE_DIR
 $ make
 $ make test
 ```
