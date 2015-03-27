@@ -161,7 +161,7 @@ class type_invariant_fnv1a {
     return hash_code;
   }
 
-  operator result_type() noexcept { return state_; }
+  explicit operator result_type() noexcept { return state_; }
 
  private:
   type_invariant_fnv1a(result_type state) : state_(state) {}
