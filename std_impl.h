@@ -229,6 +229,18 @@ struct is_contiguous_iterator<T*> : public true_type {};
 template <typename T>
 T* adl_pointer_from(T* ptr) { return ptr; }
 
+template <>
+struct is_contiguous_iterator<std::string::iterator> : public true_type {};
+
+char* adl_pointer_from(std::string::iterator i) { return &*i; }
+
+template <>
+struct is_contiguous_iterator<std::string::const_iterator>
+    : public true_type {};
+
+const char* adl_pointer_from(std::string::const_iterator i) { return &*i; }
+
+
 }  // namespace std
 
 #endif   // HASHING_DEMO_STD_IMPL_H

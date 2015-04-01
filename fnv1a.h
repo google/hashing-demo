@@ -81,9 +81,9 @@ class fnv1a {
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
     using std::adl_pointer_from;
     const unsigned char* begin_ptr =
-        static_cast<const unsigned char*>(adl_pointer_from(begin));
+        reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
     const unsigned char* end_ptr =
-        static_cast<const unsigned char*>(adl_pointer_from(end));
+        reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
     return hash_combine_range(hash_code, begin_ptr, end_ptr);
   }
 

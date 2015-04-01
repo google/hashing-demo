@@ -51,10 +51,10 @@ static void BM_HashStrings(benchmark::State& state) {
                           string_size);
 }
 
-BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string>)
-    ->Range(1, 1000 * 1000);
 BENCHMARK_TEMPLATE(BM_HashStrings, std::hash<std::string>)
     ->Range(1, 1000 * 1000);
+BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string, hashing::farmhash>)
+    ->Range(100 * 1000, 1000 * 1000);
 
 struct farmhash_string_direct {
   size_t operator()(const std::string& s) {
@@ -62,8 +62,6 @@ struct farmhash_string_direct {
   }
 };
 
-BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string, hashing::farmhash>)
-    ->Range(1, 1000 * 1000);
 BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_string_direct)
     ->Range(1, 1000 * 1000);
 
