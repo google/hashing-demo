@@ -19,6 +19,8 @@
 
 #include "benchmark/benchmark.h"
 
+#include "farmhash.h"
+#include "farmhash-direct.h"
 #include "std.h"
 
 template <class H>
@@ -52,6 +54,17 @@ static void BM_HashStrings(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string>)
     ->Range(1, 1000 * 1000);
 BENCHMARK_TEMPLATE(BM_HashStrings, std::hash<std::string>)
+    ->Range(1, 1000 * 1000);
+
+struct farmhash_string_direct {
+  size_t operator()(const std::string& s) {
+    return hashing::direct::farmhash::Hash64(s.data(), s.size());
+  }
+};
+
+BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string, hashing::farmhash>)
+    ->Range(1, 1000 * 1000);
+BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_string_direct)
     ->Range(1, 1000 * 1000);
 
 BENCHMARK_MAIN();
