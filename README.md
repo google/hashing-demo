@@ -24,7 +24,12 @@ The tests depend on [GoogleTest](https://code.google.com/p/googletest/),
 which must be provided separately. By default, CMake will expect to find
 the GoogleTest source in `/usr/src/gtest` and the headers in a default
 include path, but these can be configured with `-Dgtest_src_dir` and
-`-DCMAKE_INCLUDE_PATH`, respectively.
+`-DCMAKE_INCLUDE_PATH`, respectively. Similarly, the benchmarks depend on
+[google/benchmark](https://github.com/google/benchmark). This is included
+as a git submodule (run `git submodule init; git submodule update` to set
+it up), or you can install the source distribution in another location,
+and configure that location with `-Dbenchmark_src_dir`.
+
 
 #User-facing API
 
