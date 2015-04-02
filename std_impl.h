@@ -114,6 +114,8 @@ HashCode hash_bytes(HashCode code, const T& value) {
 }
 
 // Requires: Container has begin(), end(), and size() methods
+// If N4183 is not available (see below), we would need to handle contiguous
+// containers separately, for efficiency.
 template <typename HashCode, typename Container>
 HashCode hash_sized_container(
     HashCode code, const Container& container) {
