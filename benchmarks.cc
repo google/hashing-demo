@@ -21,6 +21,8 @@
 
 #include "farmhash.h"
 #include "farmhash-direct.h"
+#include "n3980.h"
+#include "n3980-farmhash.h"
 #include "std.h"
 
 template <class H>
@@ -53,8 +55,6 @@ static void BM_HashStrings(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_HashStrings, std::hash<std::string>)
     ->Range(1, 1000 * 1000);
-BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string, hashing::farmhash>)
-    ->Range(100 * 1000, 1000 * 1000);
 
 struct farmhash_string_direct {
   size_t operator()(const std::string& s) {
@@ -63,6 +63,12 @@ struct farmhash_string_direct {
 };
 
 BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_string_direct)
+    ->Range(1, 1000 * 1000);
+
+BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string, hashing::farmhash>)
+    ->Range(1, 1000 * 1000);
+
+BENCHMARK_TEMPLATE(BM_HashStrings, std::uhash<hashing::n3980::farmhash>)
     ->Range(1, 1000 * 1000);
 
 BENCHMARK_MAIN();
