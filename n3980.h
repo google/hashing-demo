@@ -13,18 +13,27 @@
 // limitations under the License.
 
 // Extensions to namespace std to implement N3980. Not part of this proposal,
-// but implemented as a basis for comparison.
+// but implemented as a basis for comparison. Currently contains just enough
+// to get the benchmark working.
 
 #ifndef HASHING_DEMO_N3980_H
 #define HASHING_DEMO_N3980_H
 
 #include <string>
+#include <type_traits>
 
 namespace std {
+
+template <typename HashAlgorithm, typename Integral>
+enable_if_t<is_integral<Integral>::value || is_enum<Integral>::value>
+hash_append(HashAlgorithm& h, Integral value) {
+  h(&value, sizeof(value));
+}
 
 template <typename HashAlgorithm>
 void hash_append(HashAlgorithm& h, const string& str) {
   h(str.data(), str.size());
+  hash_append(h, str.size());
 }
 
 template <typename H>
