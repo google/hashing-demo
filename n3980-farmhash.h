@@ -81,6 +81,15 @@ void farmhash::operator()(const void* key, size_t length) {
     int bytes_processed = 0;
     memcpy(buffer_next_, key, buffer_remaining);
     bytes_processed += buffer_remaining;
+    if (!mixed_) {
+      x_ = kSeed;
+      y_ = kSeed * k1 + 113;
+      z_ = ShiftMix(y_ * k2 + 113) * k2;
+      v_ = {0, 0};
+      w_ = {0, 0};
+      x_ = x_ * k2 + buffer_[0];
+      mixed_ = true;
+    }
     mix();
     while (length - bytes_processed > 64) {
       memcpy(buffer_, input_bytes + bytes_processed, 64);
@@ -207,15 +216,6 @@ std::pair<uint64_t, uint64_t> farmhash::WeakHashLen32WithSeeds(
 }
 
 void farmhash::mix() {
-  if (!mixed_) {
-    x_ = kSeed;
-    y_ = kSeed * k1 + 113;
-    z_ = ShiftMix(y_ * k2 + 113) * k2;
-    v_ = {0, 0};
-    w_ = {0, 0};
-    x_ = x_ * k2 + buffer_[0];
-    mixed_ = true;
-  }
   x_ = Rotate(x_ + y_ + v_.first + buffer_[1], 37) * k1;
   y_ = Rotate(y_ + v_.second + buffer_[6], 42) * k1;
   x_ ^= w_.second;
