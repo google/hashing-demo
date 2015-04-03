@@ -4,8 +4,10 @@ project (hashing-demo CXX)
 set(gtest_src_dir /usr/src/gtest CACHE PATH "Path to gtest source root")
 set(benchmark_src_dir benchmark)
 
-add_subdirectory(${gtest_src_dir} gtest)
-add_subdirectory(${benchmark_src_dir} benchmark)
+add_subdirectory(${gtest_src_dir} gtest EXCLUDE_FROM_ALL)
+SET(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL
+    "Enable testing of the benchmark library.")
+add_subdirectory(${benchmark_src_dir} benchmark EXCLUDE_FROM_ALL)
 
 # Disable tr1/tuple, which is not available in libc++
 set_property(DIRECTORY ${gtest_src_dir} APPEND PROPERTY COMPILE_DEFINITIONS GTEST_HAS_TR1_TUPLE=0)
