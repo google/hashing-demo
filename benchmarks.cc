@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <array>
 #include <functional>
 #include <random>
 #include <string>
@@ -25,47 +27,68 @@
 #include "n3980-farmhash.h"
 #include "std.h"
 
+static const int kNumBytes = 10'000'000;
+static const std::array<unsigned char, kNumBytes>& Bytes() {
+  static const std::array<unsigned char, kNumBytes> kBytes = [](){
+    std::array<unsigned char, kNumBytes> bytes;
+    std::independent_bits_engine<
+      std::default_random_engine, 8, unsigned char> engine;
+    std::generate(bytes.begin(), bytes.end(), engine);
+    return bytes;
+  }();
+  return kBytes;
+}
+
+struct string_piece {
+  string_piece(const unsigned char* begin, const unsigned char* end)
+      : begin(reinterpret_cast<const char*>(begin)),
+        end(reinterpret_cast<const char*>(end)) {}
+
+  const char* begin;
+  const char* end;
+};
+
+template <typename HashCode>
+HashCode hash_decompose(HashCode code, string_piece str) {
+  return hash_combine(
+      hash_combine_range(std::move(code), str.begin, str.end),
+      str.end - str.begin);
+}
+
+template <typename HashAlgorithm>
+void hash_append(HashAlgorithm& h, string_piece str) {
+  using std::hash_append;
+  h(str.begin, str.end - str.begin);
+  hash_append(h, str.end - str.begin);
+}
+
+struct farmhash_string_direct {
+  size_t operator()(string_piece s) {
+    return hashing::direct::farmhash::Hash64(s.begin, s.end - s.begin);
+  }
+};
+
 template <class H>
 static void BM_HashStrings(benchmark::State& state) {
-  static const int kTotalStringBytes = 1000 * 1000;
+  const std::array<unsigned char, kNumBytes>& bytes = Bytes();
+
   const int string_size = state.range_x();
-  const int num_strings = kTotalStringBytes / string_size;
-
-  std::vector<std::string> strings;
-  strings.reserve(num_strings);
-
-  std::default_random_engine rng;
-  std::uniform_int_distribution<char> dist;
-  for (int i = 0; i < num_strings; ++i) {
-    strings.push_back({});
-    strings.back().reserve(string_size);
-    for (int j = 0; j < string_size; ++j) {
-      strings.back().push_back(dist(rng));
-    }
-  }
+  assert(string_size <= kNumBytes/10);
 
   int i = 0;
   H h;
   while (state.KeepRunning()) {
-    benchmark::DoNotOptimize(h(strings[i++ % strings.size()]));
+    benchmark::DoNotOptimize(h(string_piece{&bytes[i], &bytes[i+string_size]}));
+    i = (i + 1) % (kNumBytes - string_size);
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations()) *
                           string_size);
 }
 
-BENCHMARK_TEMPLATE(BM_HashStrings, std::hash<std::string>)
-    ->Range(1, 1000 * 1000);
-
-struct farmhash_string_direct {
-  size_t operator()(const std::string& s) {
-    return hashing::direct::farmhash::Hash64(s.data(), s.size());
-  }
-};
-
 BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_string_direct)
     ->Range(1, 1000 * 1000);
 
-BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<std::string, hashing::farmhash>)
+BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<string_piece, hashing::farmhash>)
     ->Range(1, 1000 * 1000);
 
 BENCHMARK_TEMPLATE(BM_HashStrings, std::uhash<hashing::n3980::farmhash>)
