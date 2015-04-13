@@ -232,16 +232,15 @@ template <typename T>
 T* adl_pointer_from(T* ptr) { return ptr; }
 
 template <>
-struct is_contiguous_iterator<std::string::iterator> : public true_type {};
+struct is_contiguous_iterator<string::iterator> : public true_type {};
 
-char* adl_pointer_from(std::string::iterator i) { return &*i; }
+char* adl_pointer_from(string::iterator i) { return &*i; }
 
 template <>
-struct is_contiguous_iterator<std::string::const_iterator>
+struct is_contiguous_iterator<string::const_iterator>
     : public true_type {};
 
-const char* adl_pointer_from(std::string::const_iterator i) { return &*i; }
-
+const char* adl_pointer_from(string::const_iterator i) { return &*i; }
 
 }  // namespace std
 
