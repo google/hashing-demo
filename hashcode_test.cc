@@ -138,10 +138,15 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
   std::memset(buffer1, 255, sizeof(buffer2));
   auto* s2 = reinterpret_cast<StructWithPadding*>(buffer2);
   for (int i = 0; i < kNumStructs; ++i) {
+    SCOPED_TRACE(i);
     s1[i].c = s2[i].c = '0' + i;
     s1[i].i = s2[i].i = i;
+    ASSERT_FALSE(memcmp(buffer1 + i * sizeof(StructWithPadding),
+                        buffer2 + 1 * sizeof(StructWithPadding),
+                        sizeof(StructWithPadding)) == 0)
+        << "Bug in test code: objects do not have unequal"
+        << " object representations";
   }
-  ASSERT_NE(buffer1[1], buffer2[1]);
 
   EXPECT_TRUE(Equivalent(
       hash_combine(StateAnd<TypeParam>().hash_code, s1[0], s1[1]),
