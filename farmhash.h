@@ -18,8 +18,10 @@
 #ifndef HASHING_DEMO_FARMHASH_H
 #define HASHING_DEMO_FARMHASH_H
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 #include "std_impl.h"
