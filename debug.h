@@ -32,30 +32,17 @@ class identity {
   identity(identity&&) = default;
   identity& operator=(identity&&) = default;
 
-  template <typename T, typename... Ts>
+  template <typename T, typename U, typename... Ts>
   friend identity hash_combine(
-      identity code, const T& value, const Ts&... values) {
-    using std::hash_decompose;
-    return hash_combine(hash_decompose(std::move(code), value), values...);
+      identity code, const T& t, const U& u, const Ts&... values) {
+    return hash_combine_impl(std::move(code), t, u, values...);
   }
-
-  template <typename... Ts>
-  friend identity hash_combine(
-      identity code, unsigned char c, const Ts&... values) {
-    code.hash_input_.push_back(c);
-    return hash_combine(std::move(code), values...);
-  }
-
-  friend identity hash_combine(identity code) {
-    return std::move(code);
-  }
-
   template <typename InputIterator>
   friend identity hash_combine_range(
       identity code, InputIterator begin, InputIterator end) {
-    using std::hash_decompose;
+    using std::hash_combine;
     while (begin != end) {
-      code = hash_decompose(std::move(code), *begin);
+      code = hash_combine(std::move(code), *begin);
       ++begin;
     }
     return code;
@@ -70,6 +57,27 @@ class identity {
   explicit operator result_type() && {
     return result_type(std::move(hash_input_));
   }
+
+ private:
+  template <typename T, typename... Ts>
+  static identity hash_combine_impl(
+      identity code, const T& value, const Ts&... values) {
+    using std::hash_combine;
+    return hash_combine_impl(hash_combine(std::move(code), value), values...);
+  }
+
+  template <typename... Ts>
+  static identity hash_combine_impl(
+      identity code, unsigned char c, const Ts&... values) {
+    code.hash_input_.push_back(c);
+    return hash_combine_impl(std::move(code), values...);
+  }
+
+  static identity hash_combine_impl(identity code) {
+    return std::move(code);
+  }
+
+
 };
 
 

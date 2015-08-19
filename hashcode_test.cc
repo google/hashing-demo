@@ -54,6 +54,7 @@ TYPED_TEST_P(HashCodeTest, InitialStatesAreEqual) {
 }
 
 TYPED_TEST_P(HashCodeTest, EmptyCombineIsNoOp) {
+  using std::hash_combine;
   EXPECT_TRUE(Equivalent(hash_combine(StateAnd<TypeParam>().hash_code),
                          StateAnd<TypeParam>().hash_code));
   std::vector<int> v;
@@ -64,6 +65,7 @@ TYPED_TEST_P(HashCodeTest, EmptyCombineIsNoOp) {
 
 template <typename HashCode, typename Int>
 void HashCombineIntegralTypeImpl() {
+  using std::hash_combine;
   SCOPED_TRACE(std::string("with integral type ") + typeid(Int).name());
   using limits = std::numeric_limits<Int>;
   EXPECT_FALSE(Equivalent(
@@ -119,7 +121,7 @@ static_assert(std::is_trivially_constructible<StructWithPadding>::value, "");
 static_assert(std::is_standard_layout<StructWithPadding>::value, "");
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode hash_code, const StructWithPadding& s) {
+HashCode hash_combine(HashCode hash_code, const StructWithPadding& s) {
   return hash_combine(std::move(hash_code), s.c, s.i);
 }
 

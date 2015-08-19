@@ -33,7 +33,7 @@ template <typename T, typename Enable = void>
 struct is_uniquely_represented : false_type {};
 
 // The standard must guarantee that this specialization is present, and
-// true, so that hash_decompose() recursion is guaranteed to eventually
+// true, so that hash_combine() recursion is guaranteed to eventually
 // reach a uniquely-represented type.
 template <>
 struct is_uniquely_represented<unsigned char> : true_type {};
@@ -104,8 +104,14 @@ template <typename T, size_t N>
 struct is_uniquely_represented<array<T, N>>
     : public integral_constant<bool, sizeof(T[N]) == sizeof(array<T, N>)> {};
 
-// hash_decompose function overloads for standard types
+// Two-argument hash_combine overloads for standard types
 // ==========================================================================
+
+// FIXME: is this the right place for this?
+template <typename HashCode>
+HashCode hash_combine(HashCode code) {
+  return std::move(code);
+}
 
 namespace detail {
 template <typename HashCode, typename T>
@@ -113,7 +119,38 @@ HashCode hash_bytes(HashCode code, const T& value) {
   const unsigned char* start = reinterpret_cast<const unsigned char*>(&value);
   return hash_combine_range(move(code), start, start + sizeof(value));
 }
+}  // namespace detail
 
+template <typename HashCode, typename Integral>
+enable_if_t<is_integral<Integral>::value || is_enum<Integral>::value,
+            HashCode>
+hash_combine(HashCode code, Integral value) {
+  return detail::hash_bytes(move(code), value);
+}
+
+template <typename HashCode>
+HashCode hash_combine(HashCode code, bool value) {
+  return hash_combine(move(code), static_cast<unsigned char>(value ? 1 : 0));
+}
+
+template <typename HashCode, typename Float>
+enable_if_t<is_floating_point<Float>::value,
+            HashCode>
+hash_combine(HashCode code, Float value) {
+  return detail::hash_bytes(move(code), value == 0 ? 0 : value);
+}
+
+template <typename HashCode, typename T>
+HashCode hash_combine(HashCode code, T* ptr) {
+  return detail::hash_bytes(move(code), ptr);
+}
+
+template <typename HashCode>
+HashCode hash_combine(HashCode code, nullptr_t p) {
+  return hash_combine(code, static_cast<unsigned char>(0));
+}
+
+namespace detail {
 // Requires: Container has begin(), end(), and size() methods
 // If N4183 is not available (see below), we would need to handle contiguous
 // containers separately, for efficiency.
@@ -131,42 +168,13 @@ HashCode hash_sized_container(
 }
 }  // namespace detail
 
-template <typename HashCode, typename Integral>
-enable_if_t<is_integral<Integral>::value || is_enum<Integral>::value,
-            HashCode>
-hash_decompose(HashCode code, Integral value) {
-  return detail::hash_bytes(move(code), value);
-}
-
-template <typename HashCode>
-HashCode hash_decompose(HashCode code, bool value) {
-  return hash_combine(move(code), static_cast<unsigned char>(value ? 1 : 0));
-}
-
-template <typename HashCode, typename Float>
-enable_if_t<is_floating_point<Float>::value,
-            HashCode>
-hash_decompose(HashCode code, Float value) {
-  return detail::hash_bytes(move(code), value == 0 ? 0 : value);
-}
-
 template <typename HashCode, typename T>
-HashCode hash_decompose(HashCode code, T* ptr) {
-  return detail::hash_bytes(move(code), ptr);
-}
-
-template <typename HashCode>
-HashCode hash_decompose(HashCode code, nullptr_t p) {
-  return hash_combine(code, static_cast<unsigned char>(0));
-}
-
-template <typename HashCode, typename T>
-HashCode hash_decompose(HashCode code, const vector<T>& v) {
+HashCode hash_combine(HashCode code, const vector<T>& v) {
   return detail::hash_sized_container(std::move(code), v);
 }
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode code, const string& s) {
+HashCode hash_combine(HashCode code, const string& s) {
   return detail::hash_sized_container(std::move(code), s);
 }
 
@@ -178,12 +186,12 @@ HashCode hash_decompose(HashCode code, const string& s) {
 // I've chosen to treat std::array as a container rather than a
 // tuple-like type, meaning that the hash includes the size.
 template <typename HashCode, typename T, size_t N>
-HashCode hash_decompose(HashCode code, const array<T, N>& a) {
+HashCode hash_combine(HashCode code, const array<T, N>& a) {
   return detail::hash_sized_container(std::move(code), a);
 }
 
 template <typename HashCode, typename T>
-HashCode hash_decompose(HashCode code, const forward_list<T>& l) {
+HashCode hash_combine(HashCode code, const forward_list<T>& l) {
   // We traverse the list manually rather than calling hash_combine_range,
   // so that we can compute the size without a second traversal. As with
   // hash_sized_container, we use size_t rather than the container's
@@ -197,24 +205,24 @@ HashCode hash_decompose(HashCode code, const forward_list<T>& l) {
 }
 
 template <typename HashCode, typename T, typename D>
-HashCode hash_decompose(HashCode code, const unique_ptr<T,D>& ptr) {
+HashCode hash_combine(HashCode code, const unique_ptr<T,D>& ptr) {
   return hash_combine(move(code), ptr.get());
 }
 
 template <typename HashCode, typename T, typename U>
-HashCode hash_decompose(HashCode code, const pair<T,U>& p) {
+HashCode hash_combine(HashCode code, const pair<T,U>& p) {
   return hash_combine(move(code), p.first, p.second);
 }
 
 namespace detail {
 template <typename HashCode, typename Tuple, size_t... Is>
-HashCode hash_tuple(HashCode code, const Tuple& t, index_sequence<Is...>) {
+HashCode hash_combine(HashCode code, const Tuple& t, index_sequence<Is...>) {
   return hash_combine(move(code), get<Is>(t)...);
 }
 }  // namespace detail
 
 template <typename HashCode, typename... Ts>
-HashCode hash_decompose(HashCode code, const tuple<Ts...>& t) {
+HashCode hash_combine(HashCode code, const tuple<Ts...>& t) {
   return hash_tuple(move(code), t, make_index_sequence<sizeof...(Ts)>());
 }
 

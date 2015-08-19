@@ -38,7 +38,7 @@ template <typename HashCode = default_hash, typename T>
 typename HashCode::result_type hash_value(const T& value) {
   typename HashCode::state_type state;
   return typename HashCode::result_type(
-      hash_decompose(HashCode(&state), value));
+      hash_combine(HashCode(&state), value));
 }
 
 template <typename T, typename HashCode = default_hash>

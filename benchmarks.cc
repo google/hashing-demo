@@ -49,7 +49,8 @@ struct string_piece {
 };
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode code, string_piece str) {
+HashCode hash_combine(HashCode code, string_piece str) {
+  using std::hash_combine;
   return hash_combine(
       hash_combine_range(std::move(code), str.begin, str.end),
       str.end - str.begin);
@@ -102,7 +103,7 @@ struct X {
 };
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode code, const X& x) {
+HashCode hash_combine(HashCode code, const X& x) {
   return hash_combine(std::move(code), x.date_, x.data_);
 }
 
