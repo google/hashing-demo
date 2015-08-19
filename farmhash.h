@@ -49,10 +49,10 @@ class farmhash {
   farmhash(state_type* s);
 
   template <typename T, typename U, typename... Ts>
-  friend farmhash hash_combine(farmhash hash_code, const T& t, const U& u,
-                               const Ts&... values) {
-    return hash_combine_impl(std::move(hash_code), t, u, values...);
-  }
+  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
+                          farmhash>
+  hash_combine(
+      farmhash hash_code, const T& value, const U& u, const Ts&... values);
 
   template <typename InputIterator>
   // Avoid ambiguity with the following overload
@@ -101,18 +101,6 @@ class farmhash {
   // is only called once, and enables us to use a much cheaper finalization
   // step for inputs of 64 bytes or less.
   bool mixed_ = false;
-
-  template <typename T, typename... Ts>
-  static std::enable_if_t<!std::is_uniquely_represented<T>::value,
-                          farmhash>
-  hash_combine_impl(farmhash hash_code, const T& value, const Ts&... values);
-
-  template <typename T, typename... Ts>
-  static std::enable_if_t<std::is_uniquely_represented<T>::value,
-                          farmhash>
-  hash_combine_impl(farmhash hash_code, const T& value, const Ts&... values);
-
-  static farmhash hash_combine_impl(farmhash hash_code);
 };
 
 class farmhash::state_type {
@@ -176,27 +164,16 @@ farmhash::farmhash(state_type* s)
     : state_(s),
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
 
-template <typename T, typename... Ts>
-std::enable_if_t<!std::is_uniquely_represented<T>::value,
-                 farmhash>
-farmhash::hash_combine_impl(
-    farmhash hash_code, const T& value, const Ts&... values) {
-  using std::hash_combine;
-  return hash_combine_impl(
-      hash_combine(std::move(hash_code), value), values...);
-}
-
-template <typename T, typename... Ts>
+template <typename T, typename U, typename... Ts>
 std::enable_if_t<std::is_uniquely_represented<T>::value,
                         farmhash>
-farmhash::hash_combine_impl(
-    farmhash hash_code, const T& value, const Ts&... values) {
+hash_combine(
+    farmhash hash_code, const T& value, const U& u, const Ts&... values) {
   unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
-  return hash_combine_impl(hash_combine_range(
-      std::move(hash_code), bytes, bytes + sizeof(value)), values...);
+  using std::hash_combine;
+  return hash_combine(hash_combine_range(
+      std::move(hash_code), bytes, bytes + sizeof(value)), u, values...);
 }
-
-farmhash farmhash::hash_combine_impl(farmhash hash_code) { return hash_code; }
 
 template <typename InputIterator>
 std::enable_if_t<!(std::is_contiguous_iterator<InputIterator>::value &&

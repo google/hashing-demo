@@ -150,6 +150,7 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
         << " object representations";
   }
 
+  using std::hash_combine;
   EXPECT_TRUE(Equivalent(
       hash_combine(StateAnd<TypeParam>().hash_code, s1[0], s1[1]),
       hash_combine(StateAnd<TypeParam>().hash_code, s2[0], s1[1])));

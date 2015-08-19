@@ -113,6 +113,11 @@ HashCode hash_combine(HashCode code) {
   return std::move(code);
 }
 
+template <typename HashCode, typename T, typename U, typename... Ts>
+HashCode hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts) {
+  return hash_combine(hash_combine(std::move(code), t), u, ts...);
+}
+
 namespace detail {
 template <typename HashCode, typename T>
 HashCode hash_bytes(HashCode code, const T& value) {
