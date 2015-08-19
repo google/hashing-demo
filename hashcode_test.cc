@@ -122,6 +122,7 @@ static_assert(std::is_standard_layout<StructWithPadding>::value, "");
 
 template <typename HashCode>
 HashCode hash_combine(HashCode hash_code, const StructWithPadding& s) {
+  using std::hash_combine;
   return hash_combine(std::move(hash_code), s.c, s.i);
 }
 

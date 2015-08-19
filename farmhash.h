@@ -48,12 +48,6 @@ class farmhash {
   // state.
   farmhash(state_type* s);
 
-  template <typename T, typename U, typename... Ts>
-  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
-                          farmhash>
-  hash_combine(
-      farmhash hash_code, const T& value, const U& u, const Ts&... values);
-
   template <typename InputIterator>
   // Avoid ambiguity with the following overload
   friend std::enable_if_t<
@@ -163,17 +157,6 @@ class farmhash::state_type {
 farmhash::farmhash(state_type* s)
     : state_(s),
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
-
-template <typename T, typename U, typename... Ts>
-std::enable_if_t<std::is_uniquely_represented<T>::value,
-                        farmhash>
-hash_combine(
-    farmhash hash_code, const T& value, const U& u, const Ts&... values) {
-  unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
-  using std::hash_combine;
-  return hash_combine(hash_combine_range(
-      std::move(hash_code), bytes, bytes + sizeof(value)), u, values...);
-}
 
 template <typename InputIterator>
 std::enable_if_t<!(std::is_contiguous_iterator<InputIterator>::value &&

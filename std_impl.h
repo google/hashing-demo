@@ -104,19 +104,29 @@ template <typename T, size_t N>
 struct is_uniquely_represented<array<T, N>>
     : public integral_constant<bool, sizeof(T[N]) == sizeof(array<T, N>)> {};
 
-// Two-argument hash_combine overloads for standard types
+// Generic hash_combine overloads for common cases
 // ==========================================================================
 
-// FIXME: is this the right place for this?
 template <typename HashCode>
 HashCode hash_combine(HashCode code) {
   return std::move(code);
 }
 
 template <typename HashCode, typename T, typename U, typename... Ts>
-HashCode hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts) {
-  return hash_combine(hash_combine(std::move(code), t), u, ts...);
-}
+std::enable_if_t<!std::is_uniquely_represented<T>::value,
+                 HashCode>
+hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts);
+
+// Base case of hash_combine: hash the bytes directly once we reach a
+// uniquely-represented type.
+template <typename HashCode, typename T, typename U, typename... Ts>
+std::enable_if_t<std::is_uniquely_represented<T>::value,
+                 HashCode>
+hash_combine(HashCode hash_code, const T& value, const U& u,
+             const Ts&... values);
+
+// Two-argument hash_combine overloads for standard types
+// ==========================================================================
 
 namespace detail {
 template <typename HashCode, typename T>
@@ -229,6 +239,29 @@ HashCode hash_combine(HashCode code, const Tuple& t, index_sequence<Is...>) {
 template <typename HashCode, typename... Ts>
 HashCode hash_combine(HashCode code, const tuple<Ts...>& t) {
   return hash_tuple(move(code), t, make_index_sequence<sizeof...(Ts)>());
+}
+
+// Implementations of functions forward-declared earlier
+// ==========================================================================
+
+template <typename HashCode, typename T, typename U, typename... Ts>
+std::enable_if_t<!std::is_uniquely_represented<T>::value,
+                 HashCode>
+hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts) {
+  return hash_combine(hash_combine(std::move(code), t), u, ts...);
+}
+
+// Base case of hash_combine: hash the bytes directly once we reach a
+// uniquely-represented type.
+template <typename HashCode, typename T, typename U, typename... Ts>
+std::enable_if_t<std::is_uniquely_represented<T>::value,
+                 HashCode>
+hash_combine(HashCode hash_code, const T& value, const U& u,
+             const Ts&... values) {
+  unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
+  return hash_combine(
+      hash_combine_range(std::move(hash_code), bytes, bytes + sizeof(value)),
+      u, values...);
 }
 
 // Dummy implementation of N4183 (contiguous iterator utilities), so

@@ -30,20 +30,6 @@ class fnv1a {
 
   fnv1a(state_type* /* unused */) {}
 
-  // Base case of hash_combine_impl: hash the bytes directly once we reach a
-  // uniquely-represented type.
-  template <typename T, typename U, typename... Ts>
-  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
-                          fnv1a>
-  hash_combine(
-      fnv1a hash_code, const T& value, const U& u, const Ts&... values) {
-    unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
-    using std::hash_combine;
-    return hash_combine(
-        hash_combine_range(hash_code, bytes, bytes + sizeof(value)),
-        u, values...);
-  }
-
   // Generic iterative implementation of hash_combine_range.
   template <typename InputIterator>
   // Avoid ambiguity with the following overload
