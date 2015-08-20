@@ -19,11 +19,11 @@
 namespace hashing {
 
 class identity {
-  std::string hash_input_;
+  std::basic_string<unsigned char> hash_input_;
 
  public:
   struct state_type {};
-  using result_type = std::string;
+  using result_type = std::basic_string<unsigned char>;
 
   identity(state_type* /* unused */) {}
 

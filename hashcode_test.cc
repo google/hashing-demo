@@ -44,7 +44,7 @@ bool Equivalent(HashCode h1, HashCode h2) {
 }
 
 template <typename HashCode>
-class HashCodeTest : public  ::testing::Test {};
+class HashCodeTest : public ::testing::Test {};
 
 TYPED_TEST_CASE_P(HashCodeTest);
 
@@ -173,5 +173,51 @@ using HashCodeTypes = ::testing::Types<
   hashing::farmhash, hashing::fnv1a, hashing::type_invariant_fnv1a,
   hashing::identity>;
 INSTANTIATE_TYPED_TEST_CASE_P(My, HashCodeTest, HashCodeTypes);
+
+template <typename HashCode>
+class InvariantHashCodeTest : public ::testing::Test {};
+
+TYPED_TEST_CASE_P(InvariantHashCodeTest);
+
+// Struct that is uniquely represented, but has a hash representation that's
+// not identical to its object representation (this can happen e.g. if you
+// want to match the hash representation of a different type).
+struct CustomHashRep {
+  short value;
+};
+
+template <typename HashCode>
+HashCode hash_combine(HashCode hash_code, const CustomHashRep& c) {
+  using std::hash_combine;
+  return hash_combine(std::move(hash_code), static_cast<long>(c.value));
+}
+
+} // namespace
+
+namespace std {
+template<> struct is_uniquely_represented<::CustomHashRep> : true_type {};
+}
+
+namespace {
+
+TYPED_TEST_P(InvariantHashCodeTest, HashesIndividualValues) {
+  CustomHashRep structs[3] = {{1}, {2}, {3}};
+  long equivalent[3] = {1, 2, 3};
+
+  using std::hash_combine_range;
+  EXPECT_TRUE(Equivalent(
+      hash_combine_range(StateAnd<TypeParam>().hash_code,
+                         structs, structs + 3),
+      hash_combine_range(StateAnd<TypeParam>().hash_code,
+                         equivalent, equivalent + 3)));
+}
+
+REGISTER_TYPED_TEST_CASE_P(InvariantHashCodeTest,
+                           HashesIndividualValues);
+
+using InvariantHashCodeTypes = ::testing::Types<
+  hashing::type_invariant_fnv1a, hashing::identity>;
+INSTANTIATE_TYPED_TEST_CASE_P(My, InvariantHashCodeTest,
+                              InvariantHashCodeTypes);
 
 }  // namespace
