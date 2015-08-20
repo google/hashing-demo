@@ -55,6 +55,7 @@ class type_invariant_fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
+  static constexpr bool hashes_exact_representation = true;
   struct state_type {};
   using result_type = size_t;
 
@@ -64,24 +65,6 @@ class type_invariant_fnv1a {
   type_invariant_fnv1a& operator=(const type_invariant_fnv1a&) = delete;
   type_invariant_fnv1a(type_invariant_fnv1a&&) = default;
   type_invariant_fnv1a& operator=(type_invariant_fnv1a&&) = default;
-
-  template <typename T, typename U, typename...Ts>
-  friend type_invariant_fnv1a hash_combine(
-      type_invariant_fnv1a hash_code, const T& t, const U& u,
-      const Ts&... values) {
-    return hash_combine_impl(std::move(hash_code), t, u, values...);
-  }
-
-  template <typename InputIterator>
-  friend type_invariant_fnv1a hash_combine_range(
-      type_invariant_fnv1a hash_code, InputIterator begin, InputIterator end) {
-    using std::hash_combine;
-    while (begin != end) {
-      hash_code = hash_combine(std::move(hash_code), *begin);
-      ++begin;
-    }
-    return hash_code;
-  }
 
   friend type_invariant_fnv1a hash_combine_range(
       type_invariant_fnv1a hash_code, unsigned char const* begin,
@@ -102,25 +85,6 @@ class type_invariant_fnv1a {
     return (hash_code.state_ ^ c) * 1099511628211u;
   }
 
-  template <typename T, typename... Ts>
-  static type_invariant_fnv1a hash_combine_impl(
-      type_invariant_fnv1a hash_code, const T& value, const Ts&... values) {
-    using std::hash_combine;
-    return hash_combine_impl(
-        hash_combine(std::move(hash_code), value), values...);
-  }
-
-  template <typename... Ts>
-  static type_invariant_fnv1a hash_combine_impl(
-      type_invariant_fnv1a hash_code, unsigned char c, const Ts&... values) {
-    return hash_combine_impl(type_invariant_fnv1a(mix(std::move(hash_code), c)),
-                             values...);
-  }
-
-  static type_invariant_fnv1a hash_combine_impl(
-      type_invariant_fnv1a hash_code) {
-    return hash_code;
-  }
 };
 
 }  // namespace hashing

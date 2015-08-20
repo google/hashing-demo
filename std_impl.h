@@ -138,35 +138,47 @@ HashCode hash_combine(HashCode code) {
   return std::move(code);
 }
 
+template <typename...> using __void_t = void;
+
+template <typename HashCode, typename = __void_t<>>
+    struct __hashes_exact_representation : false_type {};
+
+template <typename HashCode>
+struct __hashes_exact_representation<
+  HashCode, __void_t<decltype(HashCode::hashes_exact_representation)>>
+    : integral_constant<bool, HashCode::hashes_exact_representation> {};
+
 template <typename HashCode, typename T, typename U, typename... Ts>
-enable_if_t<!is_uniquely_represented<T>::value,
-                 HashCode>
+enable_if_t<(!std::is_uniquely_represented<T>::value ||
+             __hashes_exact_representation<HashCode>::value),
+            HashCode>
 hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts);
 
 // Base case of hash_combine: hash the bytes directly once we reach a
 // uniquely-represented type.
+// FIXME update comments
 template <typename HashCode, typename T, typename U, typename... Ts>
-enable_if_t<is_uniquely_represented<T>::value,
+enable_if_t<(std::is_uniquely_represented<T>::value &&
+             !__hashes_exact_representation<HashCode>::value),
             HashCode>
 hash_combine(HashCode hash_code, const T& value, const U& u,
              const Ts&... values);
 
-// Generic iterative implementation of hash_combine_range.
 template <typename HashCode, typename InputIterator>
-// Avoid ambiguity with the following overload
 enable_if_t<
-  !(is_contiguous_iterator<InputIterator>::value &&
-    is_uniquely_represented<
-      typename iterator_traits<InputIterator>::value_type>::value),
+  ((__hashes_exact_representation<HashCode>::value ||
+    !is_contiguous_iterator<InputIterator>::value ||
+    !is_uniquely_represented<
+      typename iterator_traits<InputIterator>::value_type>::value) &&
+   // Prevent infinite recursion
+   !is_same<InputIterator, const unsigned char*>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end);
 
-// Overload for a contiguous sequence of a uniquely-represented type: hash
-// the bytes directly. This is an optimization; the overload above would
-// work in these cases as well, but will probably be much less efficient.
 template <typename HashCode, typename InputIterator>
 enable_if_t<
-  (is_contiguous_iterator<InputIterator>::value &&
+  (!__hashes_exact_representation<HashCode>::value &&
+   is_contiguous_iterator<InputIterator>::value &&
    is_uniquely_represented<
      typename iterator_traits<InputIterator>::value_type>::value &&
    // Prevent infinite recursion
@@ -294,17 +306,17 @@ HashCode hash_combine(HashCode code, const tuple<Ts...>& t) {
 // ==========================================================================
 
 template <typename HashCode, typename T, typename U, typename... Ts>
-std::enable_if_t<!std::is_uniquely_represented<T>::value,
-                 HashCode>
+enable_if_t<(!std::is_uniquely_represented<T>::value ||
+             __hashes_exact_representation<HashCode>::value),
+            HashCode>
 hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts) {
   return hash_combine(hash_combine(std::move(code), t), u, ts...);
 }
 
-// Base case of hash_combine: hash the bytes directly once we reach a
-// uniquely-represented type.
 template <typename HashCode, typename T, typename U, typename... Ts>
-std::enable_if_t<std::is_uniquely_represented<T>::value,
-                 HashCode>
+enable_if_t<(std::is_uniquely_represented<T>::value &&
+             !__hashes_exact_representation<HashCode>::value),
+            HashCode>
 hash_combine(HashCode hash_code, const T& value, const U& u,
              const Ts&... values) {
   unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
@@ -315,9 +327,11 @@ hash_combine(HashCode hash_code, const T& value, const U& u,
 
 template <typename HashCode, typename InputIterator>
 enable_if_t<
-  !(is_contiguous_iterator<InputIterator>::value &&
-    is_uniquely_represented<
-      typename iterator_traits<InputIterator>::value_type>::value),
+  ((__hashes_exact_representation<HashCode>::value ||
+    !is_contiguous_iterator<InputIterator>::value ||
+    !is_uniquely_represented<
+      typename iterator_traits<InputIterator>::value_type>::value) &&
+   !is_same<InputIterator, const unsigned char*>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
   while (begin != end) {
@@ -329,10 +343,10 @@ hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
 
 template <typename HashCode, typename InputIterator>
 enable_if_t<
-  (is_contiguous_iterator<InputIterator>::value &&
+  (!__hashes_exact_representation<HashCode>::value &&
+   is_contiguous_iterator<InputIterator>::value &&
    is_uniquely_represented<
      typename iterator_traits<InputIterator>::value_type>::value &&
-   // Prevent infinite recursion
    !is_same<InputIterator, const unsigned char*>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
