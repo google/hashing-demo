@@ -47,46 +47,6 @@ class fnv1a {
   }
 };
 
-// Type-invariant implementation of FNV-1a hash algorithm. In order to
-// provide the type-invariance property, we have to forego the
-// optimization for uniquely-represented types, because different
-// types may use different internal representations of the same value.
-class type_invariant_fnv1a {
-  std::size_t state_ = 14695981039346656037u;
-
- public:
-  static constexpr bool hashes_exact_representation = true;
-  struct state_type {};
-  using result_type = size_t;
-
-  type_invariant_fnv1a(state_type* /* unused */) {}
-
-  type_invariant_fnv1a(const type_invariant_fnv1a&) = delete;
-  type_invariant_fnv1a& operator=(const type_invariant_fnv1a&) = delete;
-  type_invariant_fnv1a(type_invariant_fnv1a&&) = default;
-  type_invariant_fnv1a& operator=(type_invariant_fnv1a&&) = default;
-
-  friend type_invariant_fnv1a hash_combine_range(
-      type_invariant_fnv1a hash_code, unsigned char const* begin,
-      unsigned char const* end) {
-    while (begin < end) {
-      hash_code.state_ = mix(std::move(hash_code), *begin);
-      ++begin;
-    }
-    return hash_code;
-  }
-
-  explicit operator result_type() noexcept { return state_; }
-
- private:
-  type_invariant_fnv1a(result_type state) : state_(state) {}
-
-  static size_t mix(type_invariant_fnv1a hash_code, unsigned char c) {
-    return (hash_code.state_ ^ c) * 1099511628211u;
-  }
-
-};
-
 }  // namespace hashing
 
 #endif  // HASHING_DEMO_FNV1A_H

@@ -27,6 +27,7 @@
 #include "farmhash.h"
 #include "fnv1a.h"
 #include "std.h"
+#include "type_invariant.h"
 
 namespace {
 
@@ -170,8 +171,9 @@ REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
                            HashNonUniquelyRepresentedType);
 
 using HashCodeTypes = ::testing::Types<
-  hashing::farmhash, hashing::fnv1a, hashing::type_invariant_fnv1a,
-  hashing::identity>;
+  hashing::farmhash, hashing::fnv1a, hashing::identity,
+  hashing::type_invariant_hash<hashing::farmhash>,
+  hashing::type_invariant_hash<hashing::fnv1a>>;
 INSTANTIATE_TYPED_TEST_CASE_P(My, HashCodeTest, HashCodeTypes);
 
 template <typename HashCode>
@@ -216,7 +218,8 @@ REGISTER_TYPED_TEST_CASE_P(InvariantHashCodeTest,
                            HashesIndividualValues);
 
 using InvariantHashCodeTypes = ::testing::Types<
-  hashing::type_invariant_fnv1a, hashing::identity>;
+  hashing::identity, hashing::type_invariant_hash<hashing::farmhash>,
+  hashing::type_invariant_hash<hashing::fnv1a>>;
 INSTANTIATE_TYPED_TEST_CASE_P(My, InvariantHashCodeTest,
                               InvariantHashCodeTypes);
 
