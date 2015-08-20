@@ -48,25 +48,6 @@ class farmhash {
   // state.
   farmhash(state_type* s);
 
-  template <typename InputIterator>
-  // Avoid ambiguity with the following overload
-  friend std::enable_if_t<
-      !(std::is_contiguous_iterator<InputIterator>::value &&
-        std::is_uniquely_represented<
-            typename std::iterator_traits<InputIterator>::value_type>::value),
-      farmhash>
-  hash_combine_range(
-      farmhash hash_code, InputIterator begin, InputIterator end);
-
-  template <typename InputIterator>
-  friend std::enable_if_t<
-      std::is_contiguous_iterator<InputIterator>::value &&
-          std::is_uniquely_represented<
-              typename std::iterator_traits<InputIterator>::value_type>::value,
-      farmhash>
-  hash_combine_range(
-      farmhash hash_code, InputIterator begin, InputIterator end);
-
   friend farmhash hash_combine_range(
       farmhash hash_code, const unsigned char* begin,
       const unsigned char* end);
@@ -157,34 +138,6 @@ class farmhash::state_type {
 farmhash::farmhash(state_type* s)
     : state_(s),
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
-
-template <typename InputIterator>
-std::enable_if_t<!(std::is_contiguous_iterator<InputIterator>::value &&
-                   std::is_uniquely_represented<typename std::iterator_traits<
-                       InputIterator>::value_type>::value),
-                 farmhash>
-hash_combine_range(farmhash hash_code, InputIterator begin, InputIterator end) {
-  while (begin != end) {
-    using std::hash_combine;
-    hash_code = hash_combine(std::move(hash_code), *begin);
-    ++begin;
-  }
-  return hash_code;
-}
-
-template <typename InputIterator>
-std::enable_if_t<std::is_contiguous_iterator<InputIterator>::value &&
-                     std::is_uniquely_represented<typename std::iterator_traits<
-                         InputIterator>::value_type>::value,
-                 farmhash>
-hash_combine_range(farmhash hash_code, InputIterator begin, InputIterator end) {
-  using std::adl_pointer_from;
-  const unsigned char* begin_ptr =
-      reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
-  const unsigned char* end_ptr =
-      reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
-  return hash_combine_range(std::move(hash_code), begin_ptr, end_ptr);
-}
 
 farmhash hash_combine_range(
     farmhash hash_code, const unsigned char* begin, const unsigned char* end) {

@@ -30,41 +30,6 @@ class fnv1a {
 
   fnv1a(state_type* /* unused */) {}
 
-  // Generic iterative implementation of hash_combine_range.
-  template <typename InputIterator>
-  // Avoid ambiguity with the following overload
-  friend std::enable_if_t<
-      !(std::is_contiguous_iterator<InputIterator>::value &&
-        std::is_uniquely_represented<
-            typename std::iterator_traits<InputIterator>::value_type>::value),
-      fnv1a>
-  hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
-    while (begin != end) {
-      using std::hash_combine;
-      hash_code = hash_combine(hash_code, *begin);
-      ++begin;
-    }
-    return hash_code;
-  }
-
-  // Overload for a contiguous sequence of a uniquely-represented type: hash
-  // the bytes directly. This is an optimization; the overload above would
-  // work in these cases as well, but will probably be much less efficient.
-  template <typename InputIterator>
-  friend std::enable_if_t<
-      std::is_contiguous_iterator<InputIterator>::value &&
-          std::is_uniquely_represented<
-              typename std::iterator_traits<InputIterator>::value_type>::value,
-      fnv1a>
-  hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
-    using std::adl_pointer_from;
-    const unsigned char* begin_ptr =
-        reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
-    const unsigned char* end_ptr =
-        reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
-    return hash_combine_range(hash_code, begin_ptr, end_ptr);
-  }
-
   friend fnv1a hash_combine_range(
       fnv1a hash_code, const unsigned char* begin, const unsigned char* end) {
     while (begin < end) {
