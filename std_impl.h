@@ -148,30 +148,27 @@ struct __hashes_exact_representation<
   HashCode, __void_t<decltype(HashCode::hashes_exact_representation)>>
     : integral_constant<bool, HashCode::hashes_exact_representation> {};
 
-template <typename HashCode, typename T, typename U, typename... Ts>
+template <typename HashCode, typename T, typename... Ts>
 enable_if_t<(!std::is_uniquely_represented<T>::value ||
              __hashes_exact_representation<HashCode>::value),
             HashCode>
-hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts);
+hash_combine(HashCode code, const T& t, const Ts&... ts);
 
 // Base case of hash_combine: hash the bytes directly once we reach a
 // uniquely-represented type.
 // FIXME update comments
-template <typename HashCode, typename T, typename U, typename... Ts>
+template <typename HashCode, typename T, typename... Ts>
 enable_if_t<(std::is_uniquely_represented<T>::value &&
              !__hashes_exact_representation<HashCode>::value),
             HashCode>
-hash_combine(HashCode hash_code, const T& value, const U& u,
-             const Ts&... values);
+hash_combine(HashCode hash_code, const T& value, const Ts&... values);
 
 template <typename HashCode, typename InputIterator>
 enable_if_t<
-  ((__hashes_exact_representation<HashCode>::value ||
-    !is_contiguous_iterator<InputIterator>::value ||
-    !is_uniquely_represented<
-      typename iterator_traits<InputIterator>::value_type>::value) &&
-   // Prevent infinite recursion
-   !is_same<InputIterator, const unsigned char*>::value),
+  (__hashes_exact_representation<HashCode>::value ||
+   !is_contiguous_iterator<InputIterator>::value ||
+   !is_uniquely_represented<
+     typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end);
 
@@ -180,9 +177,7 @@ enable_if_t<
   (!__hashes_exact_representation<HashCode>::value &&
    is_contiguous_iterator<InputIterator>::value &&
    is_uniquely_represented<
-     typename iterator_traits<InputIterator>::value_type>::value &&
-   // Prevent infinite recursion
-   !is_same<InputIterator, const unsigned char*>::value),
+     typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end);
 
@@ -305,33 +300,37 @@ HashCode hash_combine(HashCode code, const tuple<Ts...>& t) {
 // Implementations of functions forward-declared earlier
 // ==========================================================================
 
-template <typename HashCode, typename T, typename U, typename... Ts>
+template <typename HashCode, typename T, typename... Ts>
 enable_if_t<(!std::is_uniquely_represented<T>::value ||
              __hashes_exact_representation<HashCode>::value),
             HashCode>
-hash_combine(HashCode code, const T& t, const U& u, const Ts&... ts) {
-  return hash_combine(hash_combine(std::move(code), t), u, ts...);
+hash_combine(HashCode code, const T& t, const Ts&... ts) {
+  static_assert(sizeof...(Ts) > 0,
+                "hash_combine(HashCode, T) must be specialized by owner of T");
+
+  return hash_combine(hash_combine(std::move(code), t), ts...);
 }
 
-template <typename HashCode, typename T, typename U, typename... Ts>
+template <typename HashCode, typename T, typename... Ts>
 enable_if_t<(std::is_uniquely_represented<T>::value &&
              !__hashes_exact_representation<HashCode>::value),
             HashCode>
-hash_combine(HashCode hash_code, const T& value, const U& u,
-             const Ts&... values) {
+hash_combine(HashCode hash_code, const T& value, const Ts&... values) {
+  static_assert(sizeof...(Ts) > 0,
+                "hash_combine(HashCode, T) must be specialized by owner of T");
+
   unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
   return hash_combine(
       hash_combine_range(std::move(hash_code), bytes, bytes + sizeof(value)),
-      u, values...);
+      values...);
 }
 
 template <typename HashCode, typename InputIterator>
 enable_if_t<
-  ((__hashes_exact_representation<HashCode>::value ||
-    !is_contiguous_iterator<InputIterator>::value ||
-    !is_uniquely_represented<
-      typename iterator_traits<InputIterator>::value_type>::value) &&
-   !is_same<InputIterator, const unsigned char*>::value),
+  (__hashes_exact_representation<HashCode>::value ||
+   !is_contiguous_iterator<InputIterator>::value ||
+   !is_uniquely_represented<
+     typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
   while (begin != end) {
@@ -346,10 +345,13 @@ enable_if_t<
   (!__hashes_exact_representation<HashCode>::value &&
    is_contiguous_iterator<InputIterator>::value &&
    is_uniquely_represented<
-     typename iterator_traits<InputIterator>::value_type>::value &&
-   !is_same<InputIterator, const unsigned char*>::value),
+     typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
 hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
+  static_assert(!std::is_same<InputIterator, const unsigned char*>::value,
+                "hash_combine_range(HashCode, const unsigned char*,"
+                " const unsigned char*) must be specialized by the"
+                " owner of HashCode.");
   const unsigned char* begin_ptr =
       reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
   const unsigned char* end_ptr =
