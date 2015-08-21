@@ -22,53 +22,49 @@ class identity {
   std::string hash_input_;
 
  public:
-  struct state_type {};
   using result_type = std::string;
 
-  identity(state_type* /* unused */) {}
+  identity() {}
 
   identity(const identity&) = delete;
   identity& operator=(const identity&) = delete;
-  identity(identity&&) = default;
-  identity& operator=(identity&&) = default;
+  identity(identity&&) = delete;
+  identity& operator=(identity&&) = delete;
 
   template <typename T, typename... Ts>
-  friend identity hash_combine(
-      identity code, const T& value, const Ts&... values) {
+  friend void hash_combine(
+      identity& code, const T& value, const Ts&... values) {
     using std::hash_decompose;
-    return hash_combine(hash_decompose(std::move(code), value), values...);
+    hash_decompose(code, value);
+    return hash_combine(code, values...);
   }
 
   template <typename... Ts>
-  friend identity hash_combine(
-      identity code, unsigned char c, const Ts&... values) {
+  friend void hash_combine(
+      identity& code, unsigned char c, const Ts&... values) {
     code.hash_input_.push_back(c);
-    return hash_combine(std::move(code), values...);
+    hash_combine(code, values...);
   }
 
-  friend identity hash_combine(identity code) {
-    return std::move(code);
-  }
+  friend void hash_combine(identity& code) {}
 
   template <typename InputIterator>
-  friend identity hash_combine_range(
-      identity code, InputIterator begin, InputIterator end) {
+  friend void hash_combine_range(
+      identity& code, InputIterator begin, InputIterator end) {
     using std::hash_decompose;
     while (begin != end) {
-      code = hash_decompose(std::move(code), *begin);
+      hash_decompose(code, *begin);
       ++begin;
     }
-    return code;
   }
 
-  friend identity hash_combine_range(identity code, const unsigned char* begin,
+  friend void hash_combine_range(identity& code, const unsigned char* begin,
       const unsigned char* end) {
     code.hash_input_.append(begin, end);
-    return std::move(code);
   }
 
-  explicit operator result_type() && {
-    return result_type(std::move(hash_input_));
+  explicit operator result_type() {
+    return hash_input_;
   }
 };
 

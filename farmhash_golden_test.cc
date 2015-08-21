@@ -34,9 +34,9 @@ uint64_t HashLen16(uint64_t u, uint64_t v) {
 
 // Adapt our API to the one the test fixture expects
 uint64_t Hash64(const char* str, size_t len) {
-  hashing::farmhash::state_type state;
-  return static_cast<size_t>(
-      hash_combine_range(hashing::farmhash(&state), str, str + len));
+  hashing::farmhash h;
+  hash_combine_range(h, str, str + len);
+  return static_cast<size_t>(h);
 }
 
 uint64_t Hash64WithSeeds(const char *s, size_t len,

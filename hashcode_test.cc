@@ -31,16 +31,9 @@
 namespace {
 
 template <typename HashCode>
-struct StateAnd {
-  StateAnd() : hash_code(&state) {}
-  typename HashCode::state_type state;
-  HashCode hash_code;
-};
-
-template <typename HashCode>
-bool Equivalent(HashCode h1, HashCode h2) {
+bool Equivalent(HashCode& h1, HashCode& h2) {
   using result_type = typename HashCode::result_type;
-  return result_type(std::move(h1)) == result_type(std::move(h2));
+  return result_type(h1) == result_type(h2);
 }
 
 template <typename HashCode>
@@ -49,52 +42,67 @@ class HashCodeTest : public  ::testing::Test {};
 TYPED_TEST_CASE_P(HashCodeTest);
 
 TYPED_TEST_P(HashCodeTest, InitialStatesAreEqual) {
-  EXPECT_TRUE(Equivalent(StateAnd<TypeParam>().hash_code,
-                         StateAnd<TypeParam>().hash_code));
+  TypeParam h1, h2;
+  EXPECT_TRUE(Equivalent(h1, h2));
 }
 
 TYPED_TEST_P(HashCodeTest, EmptyCombineIsNoOp) {
-  EXPECT_TRUE(Equivalent(hash_combine(StateAnd<TypeParam>().hash_code),
-                         StateAnd<TypeParam>().hash_code));
-  std::vector<int> v;
-  EXPECT_TRUE(Equivalent(hash_combine_range(StateAnd<TypeParam>().hash_code,
-                                            v.begin(), v.end()),
-                         StateAnd<TypeParam>().hash_code));
+  {
+    TypeParam h1, h2;
+    hash_combine(h1);
+    EXPECT_TRUE(Equivalent(h1, h2));
+  }
+
+  {
+    std::vector<int> v;
+    TypeParam h1, h2;
+    hash_combine_range(h1, v.begin(), v.end());
+    EXPECT_TRUE(Equivalent(h1, h2));
+  }
 }
 
 template <typename HashCode, typename Int>
 void HashCombineIntegralTypeImpl() {
   SCOPED_TRACE(std::string("with integral type ") + typeid(Int).name());
   using limits = std::numeric_limits<Int>;
-  EXPECT_FALSE(Equivalent(
-      hash_combine(StateAnd<HashCode>().hash_code, Int(0)),
-      StateAnd<HashCode>().hash_code));
-  EXPECT_FALSE(Equivalent(
-      hash_combine(StateAnd<HashCode>().hash_code, limits::max()),
-      StateAnd<HashCode>().hash_code));
-  EXPECT_FALSE(Equivalent(
-      hash_combine(StateAnd<HashCode>().hash_code, limits::min()),
-      StateAnd<HashCode>().hash_code));
-
-  StateAnd<HashCode> s;
-  for (int i = 0; i < 5; ++i) {
-    s.hash_code = hash_combine(std::move(s.hash_code), Int(i));
+  HashCode empty;
+  {
+    HashCode h;
+    hash_combine(h, Int(0));
+    EXPECT_FALSE(Equivalent(empty, h));
   }
-  EXPECT_TRUE(Equivalent(
-      std::move(s.hash_code),
-      hash_combine(StateAnd<HashCode>().hash_code,
-                   Int(0), Int(1), Int(2), Int(3), Int(4))));
-
-  StateAnd<HashCode> s2;
-  for (int i = 0; i < 10; ++i) {
-    s2.hash_code = hash_combine(std::move(s2.hash_code), Int(i));
+  {
+    HashCode h;
+    hash_combine(h, limits::max());
+    EXPECT_FALSE(Equivalent(empty, h));
   }
-  std::vector<Int> v(10);
-  std::iota(v.begin(), v.end(), Int(0));
-  EXPECT_TRUE(Equivalent(
-      std::move(s2.hash_code),
-      hash_combine_range(StateAnd<HashCode>().hash_code,
-                         v.begin(), v.end())));
+  {
+    HashCode h;
+    hash_combine(h, limits::min());
+    EXPECT_FALSE(Equivalent(empty, h));
+  }
+
+  {
+    HashCode h1;
+    for (int i = 0; i < 5; ++i) {
+      hash_combine(h1, Int(i));
+    }
+    HashCode h2;
+    hash_combine(h2, Int(0), Int(1), Int(2), Int(3), Int(4));
+    EXPECT_TRUE(Equivalent(h1, h2));
+  }
+
+  {
+    HashCode h1;
+    for (int i = 0; i < 10; ++i) {
+      hash_combine(h1, Int(i));
+    }
+    std::vector<Int> v(10);
+    std::iota(v.begin(), v.end(), Int(0));
+    HashCode h2;
+    hash_combine_range(h2, v.begin(), v.end());
+    EXPECT_TRUE(Equivalent(h1, h2));
+  }
 }
 
 TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
@@ -119,8 +127,8 @@ static_assert(std::is_trivially_constructible<StructWithPadding>::value, "");
 static_assert(std::is_standard_layout<StructWithPadding>::value, "");
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode hash_code, const StructWithPadding& s) {
-  return hash_combine(std::move(hash_code), s.c, s.i);
+void hash_decompose(HashCode& hash_code, const StructWithPadding& s) {
+  hash_combine(hash_code, s.c, s.i);
 }
 
 }  // namespace test_namespace
@@ -148,15 +156,21 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
         << " object representations";
   }
 
-  EXPECT_TRUE(Equivalent(
-      hash_combine(StateAnd<TypeParam>().hash_code, s1[0], s1[1]),
-      hash_combine(StateAnd<TypeParam>().hash_code, s2[0], s1[1])));
+  {
+    TypeParam h1;
+    hash_combine(h1, s1[0], s1[1]);
+    TypeParam h2;
+    hash_combine(h2, s2[0], s2[1]);
+    EXPECT_TRUE(Equivalent(h1, h2));
+  }
 
-  EXPECT_TRUE(Equivalent(
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s1, s1 + kNumStructs),
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s1, s1 + kNumStructs)));
+  {
+    TypeParam h1;
+    hash_combine_range(h1, s1, s1 + kNumStructs);
+    TypeParam h2;
+    hash_combine_range(h2, s2, s2 + kNumStructs);
+    EXPECT_TRUE(Equivalent(h1, h2));
+  }
 }
 
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,

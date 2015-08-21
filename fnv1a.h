@@ -25,32 +25,30 @@ class fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
-  struct state_type{};
   using result_type = size_t;
 
-  fnv1a(state_type* /* unused */) {}
+  fnv1a() {}
 
   // Generic recursive case of hash_combine.
   template <typename T, typename... Ts>
-  friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
-                          fnv1a>
-  hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
-    return hash_combine(hash_decompose(hash_code, value), values...);
+  friend std::enable_if_t<!std::is_uniquely_represented<T>::value>
+  hash_combine(fnv1a& hash_code, const T& value, const Ts&... values) {
+    hash_decompose(hash_code, value);
+    hash_combine(hash_code, values...);
   }
 
   // Base case of hash_combine: hash the bytes directly once we reach a
   // uniquely-represented type.
   template <typename T, typename... Ts>
-  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
-                          fnv1a>
-  hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
+  friend std::enable_if_t<std::is_uniquely_represented<T>::value>
+  hash_combine(fnv1a& hash_code, const T& value, const Ts&... values) {
     unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
-    return hash_combine(
-        hash_combine_range(hash_code, bytes, bytes + sizeof(value)), values...);
+    hash_combine_range(hash_code, bytes, bytes + sizeof(value));
+    hash_combine(hash_code, values...);
   }
 
   // Base case of variadic template recursion.
-  friend fnv1a hash_combine(fnv1a hash_code) { return hash_code; }
+  friend void hash_combine(fnv1a& hash_code) {}
 
   // Generic iterative implementation of hash_combine_range.
   template <typename InputIterator>
@@ -58,15 +56,13 @@ class fnv1a {
   friend std::enable_if_t<
       !(std::is_contiguous_iterator<InputIterator>::value &&
         std::is_uniquely_represented<
-            typename std::iterator_traits<InputIterator>::value_type>::value),
-      fnv1a>
-  hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
+          typename std::iterator_traits<InputIterator>::value_type>::value)>
+  hash_combine_range(fnv1a& hash_code, InputIterator begin, InputIterator end) {
     while (begin != end) {
       using std::hash_decompose;
-      hash_code = hash_decompose(hash_code, *begin);
+      hash_decompose(hash_code, *begin);
       ++begin;
     }
-    return hash_code;
   }
 
   // Overload for a contiguous sequence of a uniquely-represented type: hash
@@ -76,32 +72,25 @@ class fnv1a {
   friend std::enable_if_t<
       std::is_contiguous_iterator<InputIterator>::value &&
           std::is_uniquely_represented<
-              typename std::iterator_traits<InputIterator>::value_type>::value,
-      fnv1a>
-  hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
+            typename std::iterator_traits<InputIterator>::value_type>::value>
+  hash_combine_range(fnv1a& hash_code, InputIterator begin, InputIterator end) {
     using std::adl_pointer_from;
     const unsigned char* begin_ptr =
         reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
     const unsigned char* end_ptr =
         reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
-    return hash_combine_range(hash_code, begin_ptr, end_ptr);
+    hash_combine_range(hash_code, begin_ptr, end_ptr);
   }
 
-  friend fnv1a hash_combine_range(
-      fnv1a hash_code, const unsigned char* begin, const unsigned char* end) {
+  friend void hash_combine_range(
+      fnv1a& hash_code, const unsigned char* begin, const unsigned char* end) {
     while (begin < end) {
-      hash_code.state_ = mix(hash_code, *begin);
+      hash_code.state_ = (hash_code.state_ ^ *begin) * 1099511628211u;
       ++begin;
     }
-    return hash_code;
   }
 
-  explicit operator result_type() && noexcept { return state_; }
-
- private:
-  static size_t mix(fnv1a hash_code, unsigned char c) {
-    return (hash_code.state_ ^ c) * 1099511628211u;
-  }
+  explicit operator result_type() noexcept { return state_; }
 };
 
 // Type-invariant implementation of FNV-1a hash algorithm. In order to
@@ -112,62 +101,56 @@ class type_invariant_fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
-  struct state_type {};
   using result_type = size_t;
 
-  type_invariant_fnv1a(state_type* /* unused */) {}
+  type_invariant_fnv1a() {}
 
   type_invariant_fnv1a(const type_invariant_fnv1a&) = delete;
   type_invariant_fnv1a& operator=(const type_invariant_fnv1a&) = delete;
-  type_invariant_fnv1a(type_invariant_fnv1a&&) = default;
-  type_invariant_fnv1a& operator=(type_invariant_fnv1a&&) = default;
+  type_invariant_fnv1a(type_invariant_fnv1a&&) = delete;
+  type_invariant_fnv1a& operator=(type_invariant_fnv1a&&) = delete;
 
   template <typename T, typename... Ts>
-  friend type_invariant_fnv1a hash_combine(
-      type_invariant_fnv1a hash_code, const T& value, const Ts&... values) {
+  friend void hash_combine(
+      type_invariant_fnv1a& hash_code, const T& value, const Ts&... values) {
     using std::hash_decompose;
-    return hash_combine(hash_decompose(std::move(hash_code), value), values...);
+    hash_decompose(hash_code, value);
+    hash_combine(hash_code, values...);
   }
 
   template <typename... Ts>
-  friend type_invariant_fnv1a hash_combine(
-      type_invariant_fnv1a hash_code, unsigned char c, const Ts&... values) {
-    return hash_combine(type_invariant_fnv1a(mix(std::move(hash_code), c)),
-                        values...);
+  friend void hash_combine(
+       type_invariant_fnv1a& hash_code, unsigned char c, const Ts&... values) {
+    hash_code.mix(c);
+    hash_combine(hash_code, values...);
   }
 
-  friend type_invariant_fnv1a hash_combine(type_invariant_fnv1a hash_code) {
-    return hash_code;
-  }
+  friend void hash_combine(type_invariant_fnv1a& hash_code) {}
 
   template <typename InputIterator>
-  friend type_invariant_fnv1a hash_combine_range(
-      type_invariant_fnv1a hash_code, InputIterator begin, InputIterator end) {
+  friend void hash_combine_range(
+      type_invariant_fnv1a& hash_code, InputIterator begin, InputIterator end) {
     using std::hash_decompose;
     while (begin != end) {
-      hash_code = hash_decompose(std::move(hash_code), *begin);
+      hash_decompose(hash_code, *begin);
       ++begin;
     }
-    return hash_code;
   }
 
-  friend type_invariant_fnv1a hash_combine_range(
-      type_invariant_fnv1a hash_code, unsigned char const* begin,
+  friend void hash_combine_range(
+      type_invariant_fnv1a& hash_code, unsigned char const* begin,
       unsigned char const* end) {
     while (begin < end) {
-      hash_code.state_ = mix(std::move(hash_code), *begin);
+      hash_code.mix(*begin);
       ++begin;
     }
-    return hash_code;
   }
 
   explicit operator result_type() noexcept { return state_; }
 
  private:
-  type_invariant_fnv1a(result_type state) : state_(state) {}
-
-  static size_t mix(type_invariant_fnv1a hash_code, unsigned char c) {
-    return (hash_code.state_ ^ c) * 1099511628211u;
+  void mix(unsigned char c) {
+    state_ = (state_ ^ c) * 1099511628211u;
   }
 };
 

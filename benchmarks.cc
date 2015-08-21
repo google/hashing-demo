@@ -49,10 +49,9 @@ struct string_piece {
 };
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode code, string_piece str) {
-  return hash_combine(
-      hash_combine_range(std::move(code), str.begin, str.end),
-      str.end - str.begin);
+void hash_decompose(HashCode& code, string_piece str) {
+  hash_combine_range(code, str.begin, str.end);
+  hash_combine(code, str.end - str.begin);
 }
 
 template <typename HashAlgorithm>
@@ -102,8 +101,8 @@ struct X {
 };
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode code, const X& x) {
-  return hash_combine(std::move(code), x.date_, x.data_);
+void hash_decompose(HashCode& code, const X& x) {
+  hash_combine(code, x.date_, x.data_);
 }
 
 template <typename HashAlgorithm>
