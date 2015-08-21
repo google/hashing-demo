@@ -51,10 +51,9 @@ struct string_piece {
 template <typename HashCode>
 HashCode hash_combine(HashCode code, string_piece str) {
   using std::hash_combine;
-  using std::hash_combine_range;
-  return hash_combine(
-      hash_combine_range(std::move(code), str.begin, str.end),
-      str.end - str.begin);
+  return hash_combine(std::move(code),
+                      std::make_iterator_range(str.begin, str.end),
+                      str.end - str.begin);
 }
 
 template <typename HashAlgorithm>

@@ -30,21 +30,15 @@ class fnv1a {
 
   fnv1a(state_type* /* unused */) {}
 
-  friend fnv1a hash_combine_range(
-      fnv1a hash_code, const unsigned char* begin, const unsigned char* end) {
-    while (begin < end) {
-      hash_code.state_ = mix(hash_code, *begin);
-      ++begin;
+  friend fnv1a hash_combine(
+      fnv1a hash_code, std::iterator_range<const unsigned char*> range) {
+    for (unsigned char c : range) {
+      hash_code.state_ = (hash_code.state_ ^ c) * 1099511628211u;
     }
     return hash_code;
   }
 
   explicit operator result_type() && noexcept { return state_; }
-
- private:
-  static size_t mix(fnv1a hash_code, unsigned char c) {
-    return (hash_code.state_ ^ c) * 1099511628211u;
-  }
 };
 
 }  // namespace hashing

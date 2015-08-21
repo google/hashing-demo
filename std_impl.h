@@ -27,6 +27,32 @@
 
 namespace std {
 
+// iterator_range represents a range using a pair of iterators. It is useful
+// as an argument type for hash_combine. Note the implicit semantics that
+// two iterator_ranges are equal if and only if the range elements are equal,
+// rather than if begin() and end() are equal (this matches the semantics of
+// boost::iterator_range).
+//
+// TODO: figure out whether/how this fits into the proposal.
+template <typename InputIterator>
+class iterator_range {
+  InputIterator begin_;
+  InputIterator end_;
+
+ public:
+  iterator_range(InputIterator begin, InputIterator end)
+      : begin_(std::move(begin)), end_(std::move(end)) {}
+
+  InputIterator begin() const { return begin_; }
+  InputIterator end() const { return end_; }
+};
+
+template <typename InputIterator>
+iterator_range<InputIterator> make_iterator_range(
+    InputIterator begin, InputIterator end) {
+  return {std::move(begin), std::move(end)};
+}
+
 // Dummy implementation of N4183 (contiguous iterator utilities), so
 // that we can show examples of code that uses it. N4183 is independent
 // of this proposal, but they synergize well.
@@ -170,7 +196,7 @@ enable_if_t<
    !is_uniquely_represented<
      typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
-hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end);
+hash_combine(HashCode hash_code, const iterator_range<InputIterator> range);
 
 template <typename HashCode, typename InputIterator>
 enable_if_t<
@@ -179,7 +205,7 @@ enable_if_t<
    is_uniquely_represented<
      typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
-hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end);
+hash_combine(HashCode hash_code, const iterator_range<InputIterator> range);
 
 // Two-argument hash_combine overloads for standard types
 // ==========================================================================
@@ -188,7 +214,8 @@ namespace detail {
 template <typename HashCode, typename T>
 HashCode hash_bytes(HashCode code, const T& value) {
   const unsigned char* start = reinterpret_cast<const unsigned char*>(&value);
-  return hash_combine_range(move(code), start, start + sizeof(value));
+  return hash_combine(
+      move(code), make_iterator_range(start, start + sizeof(value)));
 }
 }  // namespace detail
 
@@ -231,8 +258,7 @@ HashCode hash_sized_container(
   // Following N3980, we append the container size to the hash of all
   // containers.
   return hash_combine(
-      hash_combine_range(
-          std::move(code), container.begin(), container.end()),
+      std::move(code), make_iterator_range(container.begin(), container.end()),
       // Force size_t so that the choice of container doesn't affect the
       // hash value.
       static_cast<size_t>(container.size()));
@@ -263,7 +289,7 @@ HashCode hash_combine(HashCode code, const array<T, N>& a) {
 
 template <typename HashCode, typename T>
 HashCode hash_combine(HashCode code, const forward_list<T>& l) {
-  // We traverse the list manually rather than calling hash_combine_range,
+  // We traverse the list manually rather than constructing an iterator_range,
   // so that we can compute the size without a second traversal. As with
   // hash_sized_container, we use size_t rather than the container's
   // size_type, for cross-container consistency.
@@ -321,7 +347,7 @@ hash_combine(HashCode hash_code, const T& value, const Ts&... values) {
 
   unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
   return hash_combine(
-      hash_combine_range(std::move(hash_code), bytes, bytes + sizeof(value)),
+      std::move(hash_code), make_iterator_range(bytes, bytes + sizeof(value)),
       values...);
 }
 
@@ -332,10 +358,9 @@ enable_if_t<
    !is_uniquely_represented<
      typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
-hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
-  while (begin != end) {
-    hash_code = hash_combine(std::move(hash_code), *begin);
-    ++begin;
+hash_combine(HashCode hash_code, iterator_range<InputIterator> range) {
+  for (const auto& value : range) {
+    hash_code = hash_combine(std::move(hash_code), value);
   }
   return std::move(hash_code);
 }
@@ -347,16 +372,17 @@ enable_if_t<
    is_uniquely_represented<
      typename iterator_traits<InputIterator>::value_type>::value),
   HashCode>
-hash_combine_range(HashCode hash_code, InputIterator begin, InputIterator end) {
+hash_combine(HashCode hash_code, iterator_range<InputIterator> range) {
   static_assert(!std::is_same<InputIterator, const unsigned char*>::value,
                 "hash_combine_range(HashCode, const unsigned char*,"
                 " const unsigned char*) must be specialized by the"
                 " owner of HashCode.");
   const unsigned char* begin_ptr =
-      reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
+      reinterpret_cast<const unsigned char*>(adl_pointer_from(range.begin()));
   const unsigned char* end_ptr =
-      reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
-  return hash_combine_range(std::move(hash_code), begin_ptr, end_ptr);
+      reinterpret_cast<const unsigned char*>(adl_pointer_from(range.end()));
+  return hash_combine(
+      std::move(hash_code), make_iterator_range(begin_ptr, end_ptr));
 }
 
 }  // namespace std

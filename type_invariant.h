@@ -37,12 +37,12 @@ class type_invariant_hash {
   type_invariant_hash(type_invariant_hash&&) = default;
   type_invariant_hash& operator=(type_invariant_hash&&) = default;
 
-  friend type_invariant_hash hash_combine_range(
-      type_invariant_hash hash_code, unsigned char const* begin,
-      unsigned char const* end) {
-    using std::hash_combine_range;
-    return type_invariant_hash(hash_combine_range(
-        std::move(hash_code.impl_), begin, end));
+  friend type_invariant_hash hash_combine(
+      type_invariant_hash hash_code,
+      std::iterator_range<unsigned char const*> range) {
+    using std::hash_combine;
+    return type_invariant_hash(
+        hash_combine(std::move(hash_code.impl_), range));
   }
 
   explicit operator result_type() && noexcept {

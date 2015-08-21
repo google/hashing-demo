@@ -33,9 +33,9 @@ class identity {
   identity(identity&&) = default;
   identity& operator=(identity&&) = default;
 
-  friend identity hash_combine_range(identity code, const unsigned char* begin,
-      const unsigned char* end) {
-    code.hash_input_.append(begin, end);
+  friend identity hash_combine(
+      identity code, std::iterator_range<const unsigned char*> range) {
+    code.hash_input_.append(range.begin(), range.end());
     return std::move(code);
   }
 

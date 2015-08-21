@@ -59,9 +59,10 @@ TYPED_TEST_P(HashCodeTest, EmptyCombineIsNoOp) {
   EXPECT_TRUE(Equivalent(hash_combine(StateAnd<TypeParam>().hash_code),
                          StateAnd<TypeParam>().hash_code));
   std::vector<int> v;
-  EXPECT_TRUE(Equivalent(hash_combine_range(StateAnd<TypeParam>().hash_code,
-                                            v.begin(), v.end()),
-                         StateAnd<TypeParam>().hash_code));
+  EXPECT_TRUE(Equivalent(
+      hash_combine(StateAnd<TypeParam>().hash_code,
+                   std::make_iterator_range(v.begin(), v.end())),
+      StateAnd<TypeParam>().hash_code));
 }
 
 template <typename HashCode, typename Int>
@@ -96,8 +97,8 @@ void HashCombineIntegralTypeImpl() {
   std::iota(v.begin(), v.end(), Int(0));
   EXPECT_TRUE(Equivalent(
       std::move(s2.hash_code),
-      hash_combine_range(StateAnd<HashCode>().hash_code,
-                         v.begin(), v.end())));
+      hash_combine(StateAnd<HashCode>().hash_code,
+                   std::make_iterator_range(v.begin(), v.end()))));
 }
 
 TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
@@ -153,16 +154,15 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
   }
 
   using std::hash_combine;
-  using std::hash_combine_range;
   EXPECT_TRUE(Equivalent(
       hash_combine(StateAnd<TypeParam>().hash_code, s1[0], s1[1]),
       hash_combine(StateAnd<TypeParam>().hash_code, s2[0], s1[1])));
 
   EXPECT_TRUE(Equivalent(
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s1, s1 + kNumStructs),
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s2, s2 + kNumStructs)));
+      hash_combine(StateAnd<TypeParam>().hash_code,
+                   std::make_iterator_range(s1, s1 + kNumStructs)),
+      hash_combine(StateAnd<TypeParam>().hash_code,
+                   std::make_iterator_range(s2, s2 + kNumStructs))));
 }
 
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
@@ -206,12 +206,12 @@ TYPED_TEST_P(InvariantHashCodeTest, HashesIndividualValues) {
   CustomHashRep structs[3] = {{1}, {2}, {3}};
   long equivalent[3] = {1, 2, 3};
 
-  using std::hash_combine_range;
+  using std::hash_combine;
   EXPECT_TRUE(Equivalent(
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         structs, structs + 3),
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         equivalent, equivalent + 3)));
+      hash_combine(StateAnd<TypeParam>().hash_code,
+                   std::make_iterator_range(structs, structs + 3)),
+      hash_combine(StateAnd<TypeParam>().hash_code,
+                   std::make_iterator_range(equivalent, equivalent + 3))));
 }
 
 REGISTER_TYPED_TEST_CASE_P(InvariantHashCodeTest,

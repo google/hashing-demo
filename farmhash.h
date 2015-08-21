@@ -48,9 +48,8 @@ class farmhash {
   // state.
   farmhash(state_type* s);
 
-  friend farmhash hash_combine_range(
-      farmhash hash_code, const unsigned char* begin,
-      const unsigned char* end);
+  friend farmhash hash_combine(
+      farmhash hash_code, std::iterator_range<const unsigned char*> range);
 
   explicit operator result_type() &&;
 
@@ -139,11 +138,13 @@ farmhash::farmhash(state_type* s)
     : state_(s),
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
 
-farmhash hash_combine_range(
-    farmhash hash_code, const unsigned char* begin, const unsigned char* end) {
+farmhash hash_combine(
+    farmhash hash_code, std::iterator_range<const unsigned char*> range) {
   unsigned char* const buffer =
       reinterpret_cast <unsigned char*>(hash_code.state_->buffer_);
   const size_t buffer_remaining = buffer + 64 - hash_code.buffer_next_;
+  const unsigned char* begin = range.begin();
+  const unsigned char* end = range.end();
   if (end - begin <= buffer_remaining) {
     // The input will not saturate the buffer, so we just copy it.
     memcpy(hash_code.buffer_next_, begin, end - begin);
