@@ -162,7 +162,7 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
       hash_combine_range(StateAnd<TypeParam>().hash_code,
                          s1, s1 + kNumStructs),
       hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s1, s1 + kNumStructs)));
+                         s2, s2 + kNumStructs)));
 }
 
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
