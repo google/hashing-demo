@@ -14,27 +14,43 @@
 
 #include <cassert>
 #include <string>
-#include <unordered_set>
 
 #include "gtest/gtest.h"
 
 #include "debug.h"
 #include "std.h"
 
-// TODO(gromer): re-enable this in terms of std::hash
-#if 0
 TEST(StdTest, UnorderedSetBasicUsage) {
-  std::unordered_set<int, std::hasher<int>> s1;
+  std_::unordered_set<int> s1;
   s1.insert(1);
   EXPECT_TRUE(s1.find(1) != s1.end());
 
-  std::unordered_set<std::string, std::hasher<std::string>> s2;
+  std_::unordered_set<std::string> s2;
   s2.insert("foo");
   EXPECT_TRUE(s2.find("foo") != s2.end());
 }
 
+// TODO(gromer): use hashing::identity
 TEST(StdTest, HashFloat) {
-  EXPECT_EQ((std::hasher<float, hashing::identity>{}(+0.0f)),
-            (std::hasher<float, hashing::identity>{}(-0.0f)));
+  EXPECT_EQ((std_::hash<float>{}(+0.0f)),
+            (std_::hash<float>{}(-0.0f)));
 }
-#endif
+
+struct Dummy {
+  size_t s;
+};
+
+namespace std_ {
+
+template<>
+struct hash<Dummy> {
+  size_t operator()(const Dummy& d) {
+    return d.s;
+  }
+};
+
+}  // namespace std_
+
+TEST(StdTest, LegacyHashingStillWorks) {
+  EXPECT_EQ(0, std_::hash<Dummy>{}(Dummy{0}));
+}

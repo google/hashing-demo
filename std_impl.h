@@ -16,7 +16,7 @@
 #define HASHING_DEMO_STD_IMPL_H
 // This file contains the proposed members of namespace std that are needed
 // to define a hash algorithm. Hash algorithm headers that are intended
-// to be usable as default_hash should include this header rather than
+// to be usable by std_::hash should include this header rather than
 // std.h, to avoid circular dependencies.
 
 #include <cstddef>

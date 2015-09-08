@@ -18,16 +18,33 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
+#include <unordered_set>
 #include <utility>
 
-#include "fnv1a.h"
+#include "farmhash.h"
 
 // The bulk of the proposed library is here. It has been separated out so
-// that the implementation of default_hash can use it without creating
+// that the implementation of std_::hash can use it without creating
 // circular dependencies.
 #include "std_impl.h"
 
 namespace std_ {
+
+template <typename T>
+struct hash {
+  // TODO(gromer): SFINAE this, to prove that it's possible.
+  size_t operator()(const T& t) {
+    hashing::farmhash::state_type state;
+    return hashing::farmhash::result_type{
+      hash_value(hashing::farmhash{&state}, t)};
+  }
+};
+
+template <typename Key,
+          typename Hash = hash<Key>,
+          typename KeyEqual = std::equal_to<Key>,
+          typename Allocator = std::allocator<Key>>
+using unordered_set = std::unordered_set<Key, Hash, KeyEqual, Allocator>;
 
 }  // namespace std_
 
