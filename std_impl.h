@@ -25,7 +25,27 @@
 #include <string>
 #include <vector>
 
-namespace std {
+namespace std_ {
+
+// Make std_ look as much like std as possible.
+using std::array;
+using std::enable_if_t;
+using std::false_type;
+using std::forward_list;
+using std::get;
+using std::index_sequence;
+using std::integral_constant;
+using std::is_enum;
+using std::is_floating_point;
+using std::is_integral;
+using std::make_index_sequence;
+using std::nullptr_t;
+using std::pair;
+using std::string;
+using std::true_type;
+using std::tuple;
+using std::unique_ptr;
+using std::vector;
 
 // is_uniquely_represented type trait
 // ==========================================================================
@@ -111,7 +131,7 @@ namespace detail {
 template <typename HashCode, typename T>
 HashCode hash_bytes(HashCode code, const T& value) {
   const unsigned char* start = reinterpret_cast<const unsigned char*>(&value);
-  return hash_combine_range(move(code), start, start + sizeof(value));
+  return hash_combine_range(std::move(code), start, start + sizeof(value));
 }
 
 // Requires: Container has begin(), end(), and size() methods
@@ -135,24 +155,25 @@ template <typename HashCode, typename Integral>
 enable_if_t<is_integral<Integral>::value || is_enum<Integral>::value,
             HashCode>
 hash_value(HashCode code, Integral value) {
-  return detail::hash_bytes(move(code), value);
+  return detail::hash_bytes(std::move(code), value);
 }
 
 template <typename HashCode>
 HashCode hash_value(HashCode code, bool value) {
-  return hash_combine(move(code), static_cast<unsigned char>(value ? 1 : 0));
+  return hash_combine(std::move(code),
+                      static_cast<unsigned char>(value ? 1 : 0));
 }
 
 template <typename HashCode, typename Float>
 enable_if_t<is_floating_point<Float>::value,
             HashCode>
 hash_value(HashCode code, Float value) {
-  return detail::hash_bytes(move(code), value == 0 ? 0 : value);
+  return detail::hash_bytes(std::move(code), value == 0 ? 0 : value);
 }
 
 template <typename HashCode, typename T>
 HashCode hash_value(HashCode code, T* ptr) {
-  return detail::hash_bytes(move(code), ptr);
+  return detail::hash_bytes(std::move(code), ptr);
 }
 
 template <typename HashCode>
@@ -198,24 +219,24 @@ HashCode hash_value(HashCode code, const forward_list<T>& l) {
 
 template <typename HashCode, typename T, typename D>
 HashCode hash_value(HashCode code, const unique_ptr<T,D>& ptr) {
-  return hash_combine(move(code), ptr.get());
+  return hash_combine(std::move(code), ptr.get());
 }
 
 template <typename HashCode, typename T, typename U>
 HashCode hash_value(HashCode code, const pair<T,U>& p) {
-  return hash_combine(move(code), p.first, p.second);
+  return hash_combine(std::move(code), p.first, p.second);
 }
 
 namespace detail {
 template <typename HashCode, typename Tuple, size_t... Is>
 HashCode hash_tuple(HashCode code, const Tuple& t, index_sequence<Is...>) {
-  return hash_combine(move(code), get<Is>(t)...);
+  return hash_combine(std::move(code), get<Is>(t)...);
 }
 }  // namespace detail
 
 template <typename HashCode, typename... Ts>
 HashCode hash_value(HashCode code, const tuple<Ts...>& t) {
-  return hash_tuple(move(code), t, make_index_sequence<sizeof...(Ts)>());
+  return hash_tuple(std::move(code), t, make_index_sequence<sizeof...(Ts)>());
 }
 
 // Dummy implementation of N4183 (contiguous iterator utilities), so

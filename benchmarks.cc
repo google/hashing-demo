@@ -57,7 +57,7 @@ HashCode hash_value(HashCode code, string_piece str) {
 
 template <typename HashAlgorithm>
 void hash_append(HashAlgorithm& h, string_piece str) {
-  using std::hash_append;
+  using std_::hash_append;
   h(str.begin, str.end - str.begin);
   hash_append(h, str.end - str.begin);
 }
@@ -72,7 +72,7 @@ template <typename T>
 struct farmhash_hasher {
   hashing::farmhash::result_type operator()(const T& t) const {
     hashing::farmhash::state_type state;
-    using std::hash_value;
+    using std_::hash_value;
     return hashing::farmhash::result_type(
         hash_value(hashing::farmhash{&state}, t));
   }
@@ -101,7 +101,7 @@ BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_string_direct)
 BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_hasher<string_piece>)
     ->Range(1, 1000 * 1000);
 
-BENCHMARK_TEMPLATE(BM_HashStrings, std::uhash<hashing::n3980::farmhash>)
+BENCHMARK_TEMPLATE(BM_HashStrings, std_::uhash<hashing::n3980::farmhash>)
     ->Range(1, 1000 * 1000);
 
 // Based on N3980's "X", but data_ is non-contiguous, in order to exercise
@@ -118,7 +118,7 @@ HashCode hash_value(HashCode code, const X& x) {
 
 template <typename HashAlgorithm>
 void hash_append(HashAlgorithm& h, const X& x) {
-  using std::hash_append;
+  using std_::hash_append;
   hash_append(h, x.date_, x.data_);
 }
 
@@ -162,7 +162,7 @@ static void BM_HashX(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_HashX, farmhash_hasher<X>)
     ->Range(1, 1000 * 1000);
 
-BENCHMARK_TEMPLATE(BM_HashX, std::uhash<hashing::n3980::farmhash>)
+BENCHMARK_TEMPLATE(BM_HashX, std_::uhash<hashing::n3980::farmhash>)
     ->Range(1, 1000 * 1000);
 
 BENCHMARK_MAIN();

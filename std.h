@@ -27,11 +27,8 @@
 // circular dependencies.
 #include "std_impl.h"
 
-// Tampering with namespace std like this is illegal. We can probably get
-// away with it in demo code, but for goodness' sake don't start depending
-// on this for real work.
-namespace std {
+namespace std_ {
 
-}  // namespace std
+}  // namespace std_
 
 #endif  // HASHING_DEMO_STD_H

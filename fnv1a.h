@@ -32,7 +32,7 @@ class fnv1a {
 
   // Generic recursive case of hash_combine.
   template <typename T, typename... Ts>
-  friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
+  friend std::enable_if_t<!std_::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
     return hash_combine(hash_value(hash_code, value), values...);
@@ -41,7 +41,7 @@ class fnv1a {
   // Base case of hash_combine: hash the bytes directly once we reach a
   // uniquely-represented type.
   template <typename T, typename... Ts>
-  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
+  friend std::enable_if_t<std_::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
     unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
@@ -56,13 +56,13 @@ class fnv1a {
   template <typename InputIterator>
   // Avoid ambiguity with the following overload
   friend std::enable_if_t<
-      !(std::is_contiguous_iterator<InputIterator>::value &&
-        std::is_uniquely_represented<
+      !(std_::is_contiguous_iterator<InputIterator>::value &&
+        std_::is_uniquely_represented<
             typename std::iterator_traits<InputIterator>::value_type>::value),
       fnv1a>
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
     while (begin != end) {
-      using std::hash_value;
+      using std_::hash_value;
       hash_code = hash_value(hash_code, *begin);
       ++begin;
     }
@@ -74,12 +74,12 @@ class fnv1a {
   // work in these cases as well, but will probably be much less efficient.
   template <typename InputIterator>
   friend std::enable_if_t<
-      std::is_contiguous_iterator<InputIterator>::value &&
-          std::is_uniquely_represented<
+      std_::is_contiguous_iterator<InputIterator>::value &&
+          std_::is_uniquely_represented<
               typename std::iterator_traits<InputIterator>::value_type>::value,
       fnv1a>
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
-    using std::adl_pointer_from;
+    using std_::adl_pointer_from;
     const unsigned char* begin_ptr =
         reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
     const unsigned char* end_ptr =
@@ -125,7 +125,7 @@ class type_invariant_fnv1a {
   template <typename T, typename... Ts>
   friend type_invariant_fnv1a hash_combine(
       type_invariant_fnv1a hash_code, const T& value, const Ts&... values) {
-    using std::hash_value;
+    using std_::hash_value;
     return hash_combine(hash_value(std::move(hash_code), value), values...);
   }
 
@@ -143,7 +143,7 @@ class type_invariant_fnv1a {
   template <typename InputIterator>
   friend type_invariant_fnv1a hash_combine_range(
       type_invariant_fnv1a hash_code, InputIterator begin, InputIterator end) {
-    using std::hash_value;
+    using std_::hash_value;
     while (begin != end) {
       hash_code = hash_value(std::move(hash_code), *begin);
       ++begin;

@@ -49,12 +49,12 @@ class farmhash {
   farmhash(state_type* s);
 
   template <typename T, typename... Ts>
-  friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
+  friend std::enable_if_t<!std_::is_uniquely_represented<T>::value,
                           farmhash>
   hash_combine(farmhash hash_code, const T& value, const Ts&... values);
 
   template <typename T, typename... Ts>
-  friend std::enable_if_t<std::is_uniquely_represented<T>::value,
+  friend std::enable_if_t<std_::is_uniquely_represented<T>::value,
                           farmhash>
   hash_combine(farmhash hash_code, const T& value, const Ts&... values);
 
@@ -63,8 +63,8 @@ class farmhash {
   template <typename InputIterator>
   // Avoid ambiguity with the following overload
   friend std::enable_if_t<
-      !(std::is_contiguous_iterator<InputIterator>::value &&
-        std::is_uniquely_represented<
+      !(std_::is_contiguous_iterator<InputIterator>::value &&
+        std_::is_uniquely_represented<
             typename std::iterator_traits<InputIterator>::value_type>::value),
       farmhash>
   hash_combine_range(
@@ -72,8 +72,8 @@ class farmhash {
 
   template <typename InputIterator>
   friend std::enable_if_t<
-      std::is_contiguous_iterator<InputIterator>::value &&
-          std::is_uniquely_represented<
+      std_::is_contiguous_iterator<InputIterator>::value &&
+          std_::is_uniquely_represented<
               typename std::iterator_traits<InputIterator>::value_type>::value,
       farmhash>
   hash_combine_range(
@@ -171,14 +171,15 @@ farmhash::farmhash(state_type* s)
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
 
 template <typename T, typename... Ts>
-std::enable_if_t<!std::is_uniquely_represented<T>::value,
+std::enable_if_t<!std_::is_uniquely_represented<T>::value,
                  farmhash>
 hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
+  using std_::hash_value;
   return hash_combine(hash_value(std::move(hash_code), value), values...);
 }
 
 template <typename T, typename... Ts>
-std::enable_if_t<std::is_uniquely_represented<T>::value,
+std::enable_if_t<std_::is_uniquely_represented<T>::value,
                         farmhash>
 hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
   unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
@@ -189,13 +190,13 @@ hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
 farmhash hash_combine(farmhash hash_code) { return hash_code; }
 
 template <typename InputIterator>
-std::enable_if_t<!(std::is_contiguous_iterator<InputIterator>::value &&
-                   std::is_uniquely_represented<typename std::iterator_traits<
+std::enable_if_t<!(std_::is_contiguous_iterator<InputIterator>::value &&
+                   std_::is_uniquely_represented<typename std::iterator_traits<
                        InputIterator>::value_type>::value),
                  farmhash>
 hash_combine_range(farmhash hash_code, InputIterator begin, InputIterator end) {
   while (begin != end) {
-    using std::hash_value;
+    using std_::hash_value;
     hash_code = hash_value(std::move(hash_code), *begin);
     ++begin;
   }
@@ -203,12 +204,13 @@ hash_combine_range(farmhash hash_code, InputIterator begin, InputIterator end) {
 }
 
 template <typename InputIterator>
-std::enable_if_t<std::is_contiguous_iterator<InputIterator>::value &&
-                     std::is_uniquely_represented<typename std::iterator_traits<
-                         InputIterator>::value_type>::value,
-                 farmhash>
+std::enable_if_t<
+    std_::is_contiguous_iterator<InputIterator>::value &&
+        std_::is_uniquely_represented<
+            typename std::iterator_traits<InputIterator>::value_type>::value,
+    farmhash>
 hash_combine_range(farmhash hash_code, InputIterator begin, InputIterator end) {
-  using std::adl_pointer_from;
+  using std_::adl_pointer_from;
   const unsigned char* begin_ptr =
       reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
   const unsigned char* end_ptr =

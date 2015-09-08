@@ -24,9 +24,15 @@
 
 #include "std.h"
 
-namespace std {
+namespace std_ {
 
-template <typename HashAlgorithm, typename Integral>
+using std::conditional_t;
+
+template <typename HashAlgorithm, typename T0, typename T1, typename... Ts>
+void hash_append(HashAlgorithm& h, const T0& t0, const T1& t1,
+                 const Ts&... ts);
+
+  template <typename HashAlgorithm, typename Integral>
 enable_if_t<is_integral<Integral>::value || is_enum<Integral>::value>
 hash_append(HashAlgorithm& h, Integral value) {
   h(&value, sizeof(value));
@@ -42,12 +48,6 @@ template <typename HashAlgorithm, typename T1, typename T2>
 void hash_append(HashAlgorithm& h, const pair<T1, T2>& p) {
   hash_append(h, p.first);
   hash_append(h, p.second);
-}
-
-template <typename HashAlgorithm, typename T, typename... Ts>
-void hash_append(HashAlgorithm& h, const T& value, const Ts&... values) {
-  hash_append(h, value);
-  hash_append(h, values...);
 }
 
 namespace detail {
@@ -102,6 +102,13 @@ void hash_append(HashAlgorithm& h, const vector<T>& v) {
       h, v, typename detail::select_hash_iteration_strategy<vector<T>>::type());
 }
 
+template <typename HashAlgorithm, typename T0, typename T1, typename... Ts>
+void hash_append(HashAlgorithm& h, const T0& t0, const T1& t1,
+                 const Ts&... ts) {
+  hash_append(h, t0);
+  hash_append(h, t1, ts...);
+}
+
 template <typename H>
 struct uhash {
   using result_type = typename H::result_type;
@@ -109,12 +116,11 @@ struct uhash {
   template <typename T>
   result_type operator()(const T& t) {
     H h;
-    using std::hash_append;
     hash_append(h, t);
     return static_cast<result_type>(h);
   }
 };
 
-}  // namespace std
+}  // namespace std_
 
 #endif  // HASHING_DEMO_N3980_H
