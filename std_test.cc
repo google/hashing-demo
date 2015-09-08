@@ -21,6 +21,8 @@
 #include "debug.h"
 #include "std.h"
 
+// TODO(gromer): re-enable this in terms of std::hash
+#if 0
 TEST(StdTest, UnorderedSetBasicUsage) {
   std::unordered_set<int, std::hasher<int>> s1;
   s1.insert(1);
@@ -35,3 +37,4 @@ TEST(StdTest, HashFloat) {
   EXPECT_EQ((std::hasher<float, hashing::identity>{}(+0.0f)),
             (std::hasher<float, hashing::identity>{}(-0.0f)));
 }
+#endif

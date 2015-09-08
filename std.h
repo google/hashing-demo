@@ -32,17 +32,6 @@
 // on this for real work.
 namespace std {
 
-using default_hash = ::hashing::fnv1a;
-
-template <typename T, typename HashCode = default_hash>
-struct hasher {
-  typename HashCode::result_type operator()(const T& value) const {
-    typename HashCode::state_type state;
-    return typename HashCode::result_type(
-        hash_value(HashCode(&state), value));
-  }
-};
-
 }  // namespace std
 
 #endif  // HASHING_DEMO_STD_H

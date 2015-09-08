@@ -68,6 +68,16 @@ struct farmhash_string_direct {
   }
 };
 
+template <typename T>
+struct farmhash_hasher {
+  hashing::farmhash::result_type operator()(const T& t) const {
+    hashing::farmhash::state_type state;
+    using std::hash_value;
+    return hashing::farmhash::result_type(
+        hash_value(hashing::farmhash{&state}, t));
+  }
+};
+
 template <class H>
 static void BM_HashStrings(benchmark::State& state) {
   const std::array<unsigned char, kNumBytes>& bytes = Bytes();
@@ -88,7 +98,7 @@ static void BM_HashStrings(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_string_direct)
     ->Range(1, 1000 * 1000);
 
-BENCHMARK_TEMPLATE(BM_HashStrings, std::hasher<string_piece, hashing::farmhash>)
+BENCHMARK_TEMPLATE(BM_HashStrings, farmhash_hasher<string_piece>)
     ->Range(1, 1000 * 1000);
 
 BENCHMARK_TEMPLATE(BM_HashStrings, std::uhash<hashing::n3980::farmhash>)
@@ -149,7 +159,7 @@ static void BM_HashX(benchmark::State& state) {
       + cumulative_vector_size * sizeof(std::pair<int, int>));
 }
 
-BENCHMARK_TEMPLATE(BM_HashX, std::hasher<X, hashing::farmhash>)
+BENCHMARK_TEMPLATE(BM_HashX, farmhash_hasher<X>)
     ->Range(1, 1000 * 1000);
 
 BENCHMARK_TEMPLATE(BM_HashX, std::uhash<hashing::n3980::farmhash>)
