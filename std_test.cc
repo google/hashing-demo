@@ -32,6 +32,6 @@ TEST(StdTest, UnorderedSetBasicUsage) {
 }
 
 TEST(StdTest, HashFloat) {
-  EXPECT_EQ(std::hash_value<hashing::identity>(+0.0f),
-            std::hash_value<hashing::identity>(-0.0f));
+  EXPECT_EQ((std::hasher<float, hashing::identity>{}(+0.0f)),
+            (std::hasher<float, hashing::identity>{}(-0.0f)));
 }

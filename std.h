@@ -34,17 +34,12 @@ namespace std {
 
 using default_hash = ::hashing::fnv1a;
 
-template <typename HashCode = default_hash, typename T>
-typename HashCode::result_type hash_value(const T& value) {
-  typename HashCode::state_type state;
-  return typename HashCode::result_type(
-      hash_decompose(HashCode(&state), value));
-}
-
 template <typename T, typename HashCode = default_hash>
 struct hasher {
   typename HashCode::result_type operator()(const T& value) const {
-    return hash_value<HashCode>(value);
+    typename HashCode::state_type state;
+    return typename HashCode::result_type(
+        hash_decompose(HashCode(&state), value));
   }
 };
 
