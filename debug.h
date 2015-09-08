@@ -22,10 +22,9 @@ class identity {
   std::string hash_input_;
 
  public:
-  struct state_type {};
   using result_type = std::string;
 
-  identity(state_type* /* unused */) {}
+  identity() {}
 
   identity(const identity&) = delete;
   identity& operator=(const identity&) = delete;

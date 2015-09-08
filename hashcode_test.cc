@@ -30,22 +30,39 @@
 
 namespace {
 
+// HashHelper::Hash acts as an extension point, allowing us to customize
+// how a particular HashCode is constructed and invoked. The primary
+// template assumes HashCode is default-constructible.
 template <typename HashCode, typename T>
-typename HashCode::result_type Hash(const T& t) {
-  using std_::hash_value;
-  typename HashCode::state_type state;
-  return typename HashCode::result_type(
-      hash_value(HashCode{&state}, t));
-}
+struct HashHelper {
+  static typename HashCode::result_type Hash(const T& t) {
+    using std_::hash_value;
+    return typename HashCode::result_type(
+        hash_value(HashCode{}, t));
+  }
+};
+
+template <typename T>
+struct HashHelper<hashing::farmhash, T> {
+  static hashing::farmhash::result_type Hash(const T& t) {
+    using std_::hash_value;
+    hashing::farmhash::state_type state;
+    return hashing::farmhash::result_type(
+        hash_value(hashing::farmhash{&state}, t));
+  }
+};
 
 template <typename HashCode>
-bool Equivalent(HashCode h1, HashCode h2) {
-  using result_type = typename HashCode::result_type;
-  return result_type(std::move(h1)) == result_type(std::move(h2));
-}
+class HashCodeTest : public ::testing::Test {
+ public:
+  template <typename T>
+  typename HashCode::result_type Hash(const T& t) {
+    return HashHelper<HashCode, T>::Hash(t);
+  }
 
-template <typename HashCode>
-class HashCodeTest : public  ::testing::Test {};
+  template <typename Int>
+  void HashCombineIntegralTypeImpl();
+};
 
 TYPED_TEST_CASE_P(HashCodeTest);
 
@@ -105,34 +122,35 @@ struct CombineRange {
 };
 
 TYPED_TEST_P(HashCodeTest, NoOpsAreEquivalent) {
-  EXPECT_EQ(Hash<TypeParam>(NoOp{}), Hash<TypeParam>(NoOp{}));
+  EXPECT_EQ(this->Hash(NoOp{}), this->Hash(NoOp{}));
 
-  EXPECT_EQ(Hash<TypeParam>(NoOp{}), Hash<TypeParam>(EmptyCombine{}));
+  EXPECT_EQ(this->Hash(NoOp{}), this->Hash(EmptyCombine{}));
 
-  EXPECT_EQ(Hash<TypeParam>(NoOp{}), Hash<TypeParam>(EmptyCombineRange{}));
+  EXPECT_EQ(this->Hash(NoOp{}), this->Hash(EmptyCombineRange{}));
 }
 
-template <typename HashCode, typename Int>
-void HashCombineIntegralTypeImpl() {
+template <typename HashCode>
+template <typename Int>
+void HashCodeTest<HashCode>::HashCombineIntegralTypeImpl() {
   SCOPED_TRACE(std::string("with integral type ") + typeid(Int).name());
   using limits = std::numeric_limits<Int>;
-  EXPECT_NE(Hash<HashCode>(NoOp{}), Hash<HashCode>(Int(0)));
-  EXPECT_NE(Hash<HashCode>(NoOp{}), Hash<HashCode>(limits::max()));
-  EXPECT_NE(Hash<HashCode>(NoOp{}), Hash<HashCode>(limits::min()));
+  EXPECT_NE(this->Hash(NoOp{}), this->Hash(Int(0)));
+  EXPECT_NE(this->Hash(NoOp{}), this->Hash(limits::max()));
+  EXPECT_NE(this->Hash(NoOp{}), this->Hash(limits::min()));
 
-  EXPECT_EQ(Hash<HashCode>(CombineIterative<Int>{}),
-            Hash<HashCode>(CombineVariadic<Int>{}));
-  EXPECT_EQ(Hash<HashCode>(CombineIterative<Int>{}),
-            Hash<HashCode>(CombineRange<Int>{}));
+  EXPECT_EQ(this->Hash(CombineIterative<Int>{}),
+            this->Hash(CombineVariadic<Int>{}));
+  EXPECT_EQ(this->Hash(CombineIterative<Int>{}),
+            this->Hash(CombineRange<Int>{}));
 }
 
 TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
-  HashCombineIntegralTypeImpl<TypeParam, int>();
-  HashCombineIntegralTypeImpl<TypeParam, unsigned int>();
-  HashCombineIntegralTypeImpl<TypeParam, char>();
-  HashCombineIntegralTypeImpl<TypeParam, unsigned char>();
-  HashCombineIntegralTypeImpl<TypeParam, long>();
-  HashCombineIntegralTypeImpl<TypeParam, unsigned long>();
+  this->template HashCombineIntegralTypeImpl<int>();
+  this->template HashCombineIntegralTypeImpl<unsigned int>();
+  this->template HashCombineIntegralTypeImpl<char>();
+  this->template HashCombineIntegralTypeImpl<unsigned char>();
+  this->template HashCombineIntegralTypeImpl<long>();
+  this->template HashCombineIntegralTypeImpl<unsigned long>();
 }
 
 struct StructWithPadding {
@@ -183,10 +201,9 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
         << " object representations";
   }
 
-  EXPECT_EQ(Hash<TypeParam>(s1[0]), Hash<TypeParam>(s2[0]));
-  EXPECT_EQ(
-      Hash<TypeParam>(ArraySlice<StructWithPadding>{s1, s1 + kNumStructs}),
-      Hash<TypeParam>(ArraySlice<StructWithPadding>{s2, s2 + kNumStructs}));
+  EXPECT_EQ(this->Hash(s1[0]), this->Hash(s2[0]));
+  EXPECT_EQ(this->Hash(ArraySlice<StructWithPadding>{s1, s1 + kNumStructs}),
+            this->Hash(ArraySlice<StructWithPadding>{s2, s2 + kNumStructs}));
 }
 
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,

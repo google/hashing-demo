@@ -30,7 +30,6 @@ TEST(StdTest, UnorderedSetBasicUsage) {
   EXPECT_TRUE(s2.find("foo") != s2.end());
 }
 
-// TODO(gromer): use hashing::identity
 TEST(StdTest, HashFloat) {
   EXPECT_EQ((std_::hash<float>{}(+0.0f)),
             (std_::hash<float>{}(-0.0f)));

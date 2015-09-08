@@ -25,10 +25,9 @@ class fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
-  struct state_type{};
   using result_type = size_t;
 
-  fnv1a(state_type* /* unused */) {}
+  fnv1a() {}
 
   // Generic recursive case of hash_combine.
   template <typename T, typename... Ts>
@@ -112,10 +111,9 @@ class type_invariant_fnv1a {
   std::size_t state_ = 14695981039346656037u;
 
  public:
-  struct state_type {};
   using result_type = size_t;
 
-  type_invariant_fnv1a(state_type* /* unused */) {}
+  type_invariant_fnv1a() {}
 
   type_invariant_fnv1a(const type_invariant_fnv1a&) = delete;
   type_invariant_fnv1a& operator=(const type_invariant_fnv1a&) = delete;
