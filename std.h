@@ -35,8 +35,8 @@ struct hash {
   // TODO(gromer): SFINAE this, to prove that it's possible.
   size_t operator()(const T& t) {
     hashing::farmhash::state_type state;
-    return hashing::farmhash::result_type{
-      hash_value(hashing::farmhash{&state}, t)};
+    return hashing::farmhash::result_type(
+        hash_value(hashing::farmhash{&state}, t));
   }
 };
 
