@@ -30,12 +30,13 @@
 
 namespace {
 
-template <typename HashCode>
-struct StateAnd {
-  StateAnd() : hash_code(&state) {}
+template <typename HashCode, typename T>
+typename HashCode::result_type Hash(const T& t) {
+  using std_::hash_value;
   typename HashCode::state_type state;
-  HashCode hash_code;
-};
+  return typename HashCode::result_type(
+      hash_value(HashCode{&state}, t));
+}
 
 template <typename HashCode>
 bool Equivalent(HashCode h1, HashCode h2) {
@@ -48,53 +49,81 @@ class HashCodeTest : public  ::testing::Test {};
 
 TYPED_TEST_CASE_P(HashCodeTest);
 
-TYPED_TEST_P(HashCodeTest, InitialStatesAreEqual) {
-  EXPECT_TRUE(Equivalent(StateAnd<TypeParam>().hash_code,
-                         StateAnd<TypeParam>().hash_code));
-}
+// Hashable types
+//
+// These types exist simply to exercise various hash_value behaviors, so
+// they are named by what their hash_value does.
 
-TYPED_TEST_P(HashCodeTest, EmptyCombineIsNoOp) {
-  EXPECT_TRUE(Equivalent(hash_combine(StateAnd<TypeParam>().hash_code),
-                         StateAnd<TypeParam>().hash_code));
-  std::vector<int> v;
-  EXPECT_TRUE(Equivalent(hash_combine_range(StateAnd<TypeParam>().hash_code,
-                                            v.begin(), v.end()),
-                         StateAnd<TypeParam>().hash_code));
+struct NoOp {
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode h, NoOp n) {
+    return std::move(h);
+  }
+};
+
+struct EmptyCombine {
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode h, EmptyCombine e) {
+    return hash_combine(std::move(h));
+  }
+};
+
+struct EmptyCombineRange {
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode h, EmptyCombineRange e) {
+    int dummy;
+    return hash_combine_range(std::move(h), &dummy, &dummy);
+  }
+};
+
+template <typename Int>
+struct CombineIterative {
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode h, CombineIterative c) {
+    for (int i = 0; i < 5; ++i) {
+      h = hash_combine(std::move(h), Int(i));
+    }
+    return h;
+  }
+};
+
+template <typename Int>
+struct CombineVariadic {
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode h, CombineVariadic c) {
+    return hash_combine(std::move(h), Int(0), Int(1), Int(2), Int(3), Int(4));
+  }
+};
+
+template <typename Int>
+struct CombineRange {
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode h, CombineRange c) {
+    Int ints[] = {Int(0), Int(1), Int(2), Int(3), Int(4)};
+    return hash_combine_range(std::move(h), std::begin(ints), std::end(ints));
+  }
+};
+
+TYPED_TEST_P(HashCodeTest, NoOpsAreEquivalent) {
+  EXPECT_EQ(Hash<TypeParam>(NoOp{}), Hash<TypeParam>(NoOp{}));
+
+  EXPECT_EQ(Hash<TypeParam>(NoOp{}), Hash<TypeParam>(EmptyCombine{}));
+
+  EXPECT_EQ(Hash<TypeParam>(NoOp{}), Hash<TypeParam>(EmptyCombineRange{}));
 }
 
 template <typename HashCode, typename Int>
 void HashCombineIntegralTypeImpl() {
   SCOPED_TRACE(std::string("with integral type ") + typeid(Int).name());
   using limits = std::numeric_limits<Int>;
-  EXPECT_FALSE(Equivalent(
-      hash_combine(StateAnd<HashCode>().hash_code, Int(0)),
-      StateAnd<HashCode>().hash_code));
-  EXPECT_FALSE(Equivalent(
-      hash_combine(StateAnd<HashCode>().hash_code, limits::max()),
-      StateAnd<HashCode>().hash_code));
-  EXPECT_FALSE(Equivalent(
-      hash_combine(StateAnd<HashCode>().hash_code, limits::min()),
-      StateAnd<HashCode>().hash_code));
+  EXPECT_NE(Hash<HashCode>(NoOp{}), Hash<HashCode>(Int(0)));
+  EXPECT_NE(Hash<HashCode>(NoOp{}), Hash<HashCode>(limits::max()));
+  EXPECT_NE(Hash<HashCode>(NoOp{}), Hash<HashCode>(limits::min()));
 
-  StateAnd<HashCode> s;
-  for (int i = 0; i < 5; ++i) {
-    s.hash_code = hash_combine(std::move(s.hash_code), Int(i));
-  }
-  EXPECT_TRUE(Equivalent(
-      std::move(s.hash_code),
-      hash_combine(StateAnd<HashCode>().hash_code,
-                   Int(0), Int(1), Int(2), Int(3), Int(4))));
-
-  StateAnd<HashCode> s2;
-  for (int i = 0; i < 10; ++i) {
-    s2.hash_code = hash_combine(std::move(s2.hash_code), Int(i));
-  }
-  std::vector<Int> v(10);
-  std::iota(v.begin(), v.end(), Int(0));
-  EXPECT_TRUE(Equivalent(
-      std::move(s2.hash_code),
-      hash_combine_range(StateAnd<HashCode>().hash_code,
-                         v.begin(), v.end())));
+  EXPECT_EQ(Hash<HashCode>(CombineIterative<Int>{}),
+            Hash<HashCode>(CombineVariadic<Int>{}));
+  EXPECT_EQ(Hash<HashCode>(CombineIterative<Int>{}),
+            Hash<HashCode>(CombineRange<Int>{}));
 }
 
 TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
@@ -106,11 +135,14 @@ TYPED_TEST_P(HashCodeTest, HashCombineIntegralType) {
   HashCombineIntegralTypeImpl<TypeParam, unsigned long>();
 }
 
-namespace test_namespace {
-
 struct StructWithPadding {
   char c;
   int i;
+
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode hash_code, const StructWithPadding& s) {
+    return hash_combine(std::move(hash_code), s.c, s.i);
+  }
 };
 
 static_assert(sizeof(StructWithPadding) > sizeof(char) + sizeof(int),
@@ -118,17 +150,20 @@ static_assert(sizeof(StructWithPadding) > sizeof(char) + sizeof(int),
 static_assert(std::is_trivially_constructible<StructWithPadding>::value, "");
 static_assert(std::is_standard_layout<StructWithPadding>::value, "");
 
-template <typename HashCode>
-HashCode hash_value(HashCode hash_code, const StructWithPadding& s) {
-  return hash_combine(std::move(hash_code), s.c, s.i);
-}
+template <typename T>
+struct ArraySlice {
+  T* begin;
+  T* end;
 
-}  // namespace test_namespace
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode hash_code, const ArraySlice& slice) {
+    return hash_combine_range(std::move(hash_code), slice.begin, slice.end);
+  }
+};
 
 TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
   // Create equal StructWithPadding objects that are known to have non-equal
   // padding bytes.
-  using test_namespace::StructWithPadding;
   static const size_t kNumStructs = 10;
   unsigned char buffer1[kNumStructs * sizeof(StructWithPadding)];
   std::memset(buffer1, 0, sizeof(buffer1));
@@ -148,19 +183,14 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
         << " object representations";
   }
 
-  EXPECT_TRUE(Equivalent(
-      hash_combine(StateAnd<TypeParam>().hash_code, s1[0], s1[1]),
-      hash_combine(StateAnd<TypeParam>().hash_code, s2[0], s1[1])));
-
-  EXPECT_TRUE(Equivalent(
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s1, s1 + kNumStructs),
-      hash_combine_range(StateAnd<TypeParam>().hash_code,
-                         s2, s2 + kNumStructs)));
+  EXPECT_EQ(Hash<TypeParam>(s1[0]), Hash<TypeParam>(s2[0]));
+  EXPECT_EQ(
+      Hash<TypeParam>(ArraySlice<StructWithPadding>{s1, s1 + kNumStructs}),
+      Hash<TypeParam>(ArraySlice<StructWithPadding>{s2, s2 + kNumStructs}));
 }
 
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
-                           InitialStatesAreEqual, EmptyCombineIsNoOp,
+                           NoOpsAreEquivalent,
                            HashCombineIntegralType,
                            HashNonUniquelyRepresentedType);
 
