@@ -119,7 +119,7 @@ static_assert(std::is_trivially_constructible<StructWithPadding>::value, "");
 static_assert(std::is_standard_layout<StructWithPadding>::value, "");
 
 template <typename HashCode>
-HashCode hash_decompose(HashCode hash_code, const StructWithPadding& s) {
+HashCode hash_value(HashCode hash_code, const StructWithPadding& s) {
   return hash_combine(std::move(hash_code), s.c, s.i);
 }
 

@@ -35,7 +35,7 @@ class fnv1a {
   friend std::enable_if_t<!std::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
-    return hash_combine(hash_decompose(hash_code, value), values...);
+    return hash_combine(hash_value(hash_code, value), values...);
   }
 
   // Base case of hash_combine: hash the bytes directly once we reach a
@@ -62,8 +62,8 @@ class fnv1a {
       fnv1a>
   hash_combine_range(fnv1a hash_code, InputIterator begin, InputIterator end) {
     while (begin != end) {
-      using std::hash_decompose;
-      hash_code = hash_decompose(hash_code, *begin);
+      using std::hash_value;
+      hash_code = hash_value(hash_code, *begin);
       ++begin;
     }
     return hash_code;
@@ -125,8 +125,8 @@ class type_invariant_fnv1a {
   template <typename T, typename... Ts>
   friend type_invariant_fnv1a hash_combine(
       type_invariant_fnv1a hash_code, const T& value, const Ts&... values) {
-    using std::hash_decompose;
-    return hash_combine(hash_decompose(std::move(hash_code), value), values...);
+    using std::hash_value;
+    return hash_combine(hash_value(std::move(hash_code), value), values...);
   }
 
   template <typename... Ts>
@@ -143,9 +143,9 @@ class type_invariant_fnv1a {
   template <typename InputIterator>
   friend type_invariant_fnv1a hash_combine_range(
       type_invariant_fnv1a hash_code, InputIterator begin, InputIterator end) {
-    using std::hash_decompose;
+    using std::hash_value;
     while (begin != end) {
-      hash_code = hash_decompose(std::move(hash_code), *begin);
+      hash_code = hash_value(std::move(hash_code), *begin);
       ++begin;
     }
     return hash_code;

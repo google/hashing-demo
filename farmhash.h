@@ -174,7 +174,7 @@ template <typename T, typename... Ts>
 std::enable_if_t<!std::is_uniquely_represented<T>::value,
                  farmhash>
 hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
-  return hash_combine(hash_decompose(std::move(hash_code), value), values...);
+  return hash_combine(hash_value(std::move(hash_code), value), values...);
 }
 
 template <typename T, typename... Ts>
@@ -195,8 +195,8 @@ std::enable_if_t<!(std::is_contiguous_iterator<InputIterator>::value &&
                  farmhash>
 hash_combine_range(farmhash hash_code, InputIterator begin, InputIterator end) {
   while (begin != end) {
-    using std::hash_decompose;
-    hash_code = hash_decompose(std::move(hash_code), *begin);
+    using std::hash_value;
+    hash_code = hash_value(std::move(hash_code), *begin);
     ++begin;
   }
   return hash_code;

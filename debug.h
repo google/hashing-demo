@@ -35,8 +35,8 @@ class identity {
   template <typename T, typename... Ts>
   friend identity hash_combine(
       identity code, const T& value, const Ts&... values) {
-    using std::hash_decompose;
-    return hash_combine(hash_decompose(std::move(code), value), values...);
+    using std::hash_value;
+    return hash_combine(hash_value(std::move(code), value), values...);
   }
 
   template <typename... Ts>
@@ -53,9 +53,9 @@ class identity {
   template <typename InputIterator>
   friend identity hash_combine_range(
       identity code, InputIterator begin, InputIterator end) {
-    using std::hash_decompose;
+    using std::hash_value;
     while (begin != end) {
-      code = hash_decompose(std::move(code), *begin);
+      code = hash_value(std::move(code), *begin);
       ++begin;
     }
     return code;

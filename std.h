@@ -39,7 +39,7 @@ struct hasher {
   typename HashCode::result_type operator()(const T& value) const {
     typename HashCode::state_type state;
     return typename HashCode::result_type(
-        hash_decompose(HashCode(&state), value));
+        hash_value(HashCode(&state), value));
   }
 };
 
