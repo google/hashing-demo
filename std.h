@@ -30,6 +30,8 @@
 
 namespace std_ {
 
+using hash_code = hashing::farmhash;
+
 template <typename T>
 struct hash {
   // TODO(gromer): SFINAE this, to prove that it's possible.

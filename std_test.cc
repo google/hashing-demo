@@ -20,14 +20,26 @@
 #include "debug.h"
 #include "std.h"
 
-TEST(StdTest, UnorderedSetBasicUsage) {
-  std_::unordered_set<int> s1;
-  s1.insert(1);
-  EXPECT_TRUE(s1.find(1) != s1.end());
+struct S {
+  int i;
 
-  std_::unordered_set<std::string> s2;
-  s2.insert("foo");
-  EXPECT_TRUE(s2.find("foo") != s2.end());
+  friend bool operator==(const S& lhs, const S& rhs) {
+    return lhs.i == rhs.i;
+  }
+
+  friend std_::hash_code hash_value(std_::hash_code h, const S& s) {
+    return hash_combine(std::move(h), s.i);
+  }
+};
+
+TEST(StdTest, UnorderedSetBasicUsage) {
+  std_::unordered_set<S> set1;
+  set1.insert(S{1});
+  EXPECT_TRUE(set1.find(S{1}) != set1.end());
+
+  std_::unordered_set<std::string> set2;
+  set2.insert("foo");
+  EXPECT_TRUE(set2.find("foo") != set2.end());
 }
 
 TEST(StdTest, HashFloat) {
