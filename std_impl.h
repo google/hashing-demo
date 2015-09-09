@@ -29,6 +29,7 @@ namespace std_ {
 
 // Make std_ look as much like std as possible.
 using std::array;
+using std::declval;
 using std::enable_if_t;
 using std::false_type;
 using std::forward_list;
@@ -264,6 +265,11 @@ struct is_contiguous_iterator<string::const_iterator>
 
 const char* adl_pointer_from(string::const_iterator i) { return &*i; }
 
-}  // namespace std
+// Implementation of N3911, provided here for convenience.
+// ==========================================================================
+
+template< class... > using void_t = void;
+
+}  // namespace std_
 
 #endif   // HASHING_DEMO_STD_IMPL_H

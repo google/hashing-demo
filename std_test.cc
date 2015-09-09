@@ -20,22 +20,22 @@
 #include "debug.h"
 #include "std.h"
 
-struct S {
+struct Hashable {
   int i;
 
-  friend bool operator==(const S& lhs, const S& rhs) {
+  friend bool operator==(const Hashable& lhs, const Hashable& rhs) {
     return lhs.i == rhs.i;
   }
 
-  friend std_::hash_code hash_value(std_::hash_code h, const S& s) {
+  friend std_::hash_code hash_value(std_::hash_code h, const Hashable& s) {
     return hash_combine(std::move(h), s.i);
   }
 };
 
 TEST(StdTest, UnorderedSetBasicUsage) {
-  std_::unordered_set<S> set1;
-  set1.insert(S{1});
-  EXPECT_TRUE(set1.find(S{1}) != set1.end());
+  std_::unordered_set<Hashable> set1;
+  set1.insert(Hashable{1});
+  EXPECT_TRUE(set1.find(Hashable{1}) != set1.end());
 
   std_::unordered_set<std::string> set2;
   set2.insert("foo");
@@ -47,15 +47,15 @@ TEST(StdTest, HashFloat) {
             (std_::hash<float>{}(-0.0f)));
 }
 
-struct Dummy {
+struct LegacyHashable {
   size_t s;
 };
 
 namespace std_ {
 
 template<>
-struct hash<Dummy> {
-  size_t operator()(const Dummy& d) {
+struct hash<LegacyHashable> {
+  size_t operator()(const LegacyHashable& d) {
     return d.s;
   }
 };
@@ -63,5 +63,20 @@ struct hash<Dummy> {
 }  // namespace std_
 
 TEST(StdTest, LegacyHashingStillWorks) {
-  EXPECT_EQ(0, std_::hash<Dummy>{}(Dummy{0}));
+  EXPECT_EQ(0, std_::hash<LegacyHashable>{}(LegacyHashable{0}));
 }
+
+template <typename T, typename = void>
+struct is_hashable : public std::false_type {};
+
+template <typename T>
+struct is_hashable<T,
+                   std_::void_t<decltype(std_::hash<T>{}(std::declval<T>()))>>
+    : public std::true_type {};
+
+struct NotHashable {};
+
+// Test that std::hash's operator() SFINAEs correctly
+static_assert(is_hashable<Hashable>::value, "");
+static_assert(is_hashable<LegacyHashable>::value, "");
+static_assert(!is_hashable<NotHashable>::value, "");
