@@ -123,7 +123,8 @@ struct is_uniquely_represented<tuple<Ts...>>
 
 template <typename T, size_t N>
 struct is_uniquely_represented<array<T, N>>
-    : public integral_constant<bool, sizeof(T[N]) == sizeof(array<T, N>)> {};
+    : public integral_constant<bool, is_uniquely_represented<T>::value &&
+                               sizeof(T[N]) == sizeof(array<T, N>)> {};
 
 // hash_value function overloads for standard types
 // ==========================================================================
