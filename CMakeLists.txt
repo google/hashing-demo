@@ -17,14 +17,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall")
 
 enable_testing()
 
-function(add_gtest test_name)
-  add_executable(${test_name} "${test_name}.cc")
-  target_link_libraries(${test_name} gtest_main)
-  add_test(${test_name} ${test_name})
-endfunction(add_gtest)
+add_executable(hashcode_test hashcode_test.cc pimpl.cc)
+target_link_libraries(hashcode_test gtest_main)
+add_test(hashcode_test hashcode_test)
 
-add_gtest(hashcode_test)
-add_gtest(std_test)
+add_executable(std_test std_test.cc)
+target_link_libraries(std_test gtest_main)
+add_test(std_test std_test)
 
 add_executable(farmhash_golden_test farmhash_golden_test.cc)
 add_test(farmhash_golden_test farmhash_golden_test)

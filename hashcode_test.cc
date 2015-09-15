@@ -18,6 +18,7 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -26,6 +27,7 @@
 #include "debug.h"
 #include "farmhash.h"
 #include "fnv1a.h"
+#include "pimpl.h"
 #include "std.h"
 
 namespace {
@@ -206,10 +208,25 @@ TYPED_TEST_P(HashCodeTest, HashNonUniquelyRepresentedType) {
             this->Hash(ArraySlice<StructWithPadding>{s2, s2 + kNumStructs}));
 }
 
+struct EquivalentToPimpl {
+  std::vector<int> v_ = {1, 2, 3};
+  std::string s_ = "abc";
+
+  template <typename HashCode>
+  friend HashCode hash_value(HashCode hash_code, const EquivalentToPimpl& e) {
+    return hash_combine(std::move(hash_code), e.v_, e.s_);
+  }
+};
+
+TYPED_TEST_P(HashCodeTest, HashPimplType) {
+  EXPECT_EQ(this->Hash(EquivalentToPimpl{}), this->Hash(Pimpl{}));
+}
+
 REGISTER_TYPED_TEST_CASE_P(HashCodeTest,
                            NoOpsAreEquivalent,
                            HashCombineIntegralType,
-                           HashNonUniquelyRepresentedType);
+                           HashNonUniquelyRepresentedType,
+                           HashPimplType);
 
 using HashCodeTypes = ::testing::Types<
   hashing::farmhash, hashing::fnv1a, hashing::type_invariant_fnv1a,
