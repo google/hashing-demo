@@ -80,3 +80,26 @@ struct NotHashable {};
 static_assert(is_hashable<Hashable>::value, "");
 static_assert(is_hashable<LegacyHashable>::value, "");
 static_assert(!is_hashable<NotHashable>::value, "");
+
+struct UniquelyRepresented {
+  int i = 0;
+
+  friend std_::hash_code hash_value(
+      std_::hash_code h, const UniquelyRepresented& u) {
+    // Deliberately use a hash representation that differs from the
+    // object representation
+    return hash_combine(std::move(h), -u.i);
+  }
+};
+
+namespace std_ {
+
+template <>
+struct is_uniquely_represented<UniquelyRepresented> : true_type {};
+
+}  // namespace std_
+
+TEST(StdTest, AppliesUniquelyRepresentedOptimization) {
+  EXPECT_EQ(std_::hash<UniquelyRepresented>{}(UniquelyRepresented{42}),
+            std_::hash<int>{}(42));
+}

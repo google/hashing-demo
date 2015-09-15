@@ -54,7 +54,7 @@ struct hash {
   operator()(const U& u) {
     hashing::farmhash::state_type state;
     return hashing::farmhash::result_type(
-        hash_value(hashing::farmhash{&state}, u));
+        hash_combine(hashing::farmhash{&state}, u));
   }
 };
 
