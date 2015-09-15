@@ -34,6 +34,7 @@ class fnv1a {
   friend std::enable_if_t<!std_::is_uniquely_represented<T>::value,
                           fnv1a>
   hash_combine(fnv1a hash_code, const T& value, const Ts&... values) {
+    using std_::hash_value;
     return hash_combine(hash_value(hash_code, value), values...);
   }
 

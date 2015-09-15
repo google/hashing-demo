@@ -135,7 +135,7 @@ class farmhash::state_type {
   inline size_t final_mix(size_t len);
 };
 
-farmhash::farmhash(state_type* s)
+inline farmhash::farmhash(state_type* s)
     : state_(s),
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
 
@@ -154,7 +154,7 @@ farmhash hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
 
 // Base case for the hash_combine variadic recursion: hash_combine of no
 // values is a no-op.
-farmhash hash_combine(farmhash hash_code) { return hash_code; }
+inline farmhash hash_combine(farmhash hash_code) { return hash_code; }
 
 // Mixes 'value' into the hash state. The last parameter is a dispatching
 // tag that indicates that 'T' is uniquely-represented.
@@ -222,7 +222,7 @@ farmhash hash_range_or_bytes(farmhash hash_code, InputIterator begin,
 
 // Fundamental base case for all the above recursions: mixes the given range
 // of bytes into the hash state.
-farmhash hash_combine_range(
+inline farmhash hash_combine_range(
     farmhash hash_code, const unsigned char* begin, const unsigned char* end) {
   unsigned char* const buffer =
       reinterpret_cast <unsigned char*>(hash_code.state_->buffer_);
@@ -255,7 +255,7 @@ farmhash hash_combine_range(
   return hash_code;
 }
 
-farmhash::operator result_type() && {
+inline farmhash::operator result_type() && {
   const size_t len =
       buffer_next_ - reinterpret_cast<unsigned char*>(state_->buffer_);
   if (!mixed_) {
@@ -279,28 +279,29 @@ farmhash::operator result_type() && {
   }
 }
 
-uint64_t farmhash::state_type::Fetch64(const unsigned char *p) {
+inline uint64_t farmhash::state_type::Fetch64(const unsigned char *p) {
   uint64_t result;
   memcpy(&result, p, sizeof(result));
   return result;
 }
 
-uint32_t farmhash::state_type::Fetch32(const unsigned char *p) {
+inline uint32_t farmhash::state_type::Fetch32(const unsigned char *p) {
   uint32_t result;
   memcpy(&result, p, sizeof(result));
   return result;
 }
 
-uint64_t farmhash::state_type::ShiftMix(uint64_t val) {
+inline uint64_t farmhash::state_type::ShiftMix(uint64_t val) {
   return val ^ (val >> 47);
 }
 
-uint64_t farmhash::state_type::Rotate(uint64_t val, int shift) {
+inline uint64_t farmhash::state_type::Rotate(uint64_t val, int shift) {
   // Avoid shifting by 64: doing so yields an undefined result.
   return shift == 0 ? val : ((val >> shift) | (val << (64 - shift)));
 }
 
-uint64_t farmhash::state_type::HashLen16(uint64_t u, uint64_t v, uint64_t mul) {
+inline uint64_t farmhash::state_type::HashLen16(
+    uint64_t u, uint64_t v, uint64_t mul) {
   // Murmur-inspired hashing.
   uint64_t a = (u ^ v) * mul;
   a ^= (a >> 47);
@@ -310,7 +311,8 @@ uint64_t farmhash::state_type::HashLen16(uint64_t u, uint64_t v, uint64_t mul) {
   return b;
 }
 
-uint64_t farmhash::state_type::HashLen0to16(const unsigned char* s, size_t len) {
+inline uint64_t farmhash::state_type::HashLen0to16(
+    const unsigned char* s, size_t len) {
   if (len >= 8) {
     uint64_t mul = k2 + len * 2;
     uint64_t a = Fetch64(s) + k2;
@@ -335,7 +337,8 @@ uint64_t farmhash::state_type::HashLen0to16(const unsigned char* s, size_t len) 
   return k2;
 }
 
-uint64_t farmhash::state_type::HashLen17to32(const unsigned char *s, size_t len) {
+inline uint64_t farmhash::state_type::HashLen17to32(
+    const unsigned char *s, size_t len) {
   uint64_t mul = k2 + len * 2;
   uint64_t a = Fetch64(s) * k1;
   uint64_t b = Fetch64(s + 8);
@@ -345,7 +348,8 @@ uint64_t farmhash::state_type::HashLen17to32(const unsigned char *s, size_t len)
                    a + Rotate(b + k2, 18) + c, mul);
 }
 
-uint64_t farmhash::state_type::HashLen33to64(const unsigned char *s, size_t len) {
+inline uint64_t farmhash::state_type::HashLen33to64(
+    const unsigned char *s, size_t len) {
   uint64_t mul = k2 + len * 2;
   uint64_t a = Fetch64(s) * k2;
   uint64_t b = Fetch64(s + 8);
@@ -361,7 +365,8 @@ uint64_t farmhash::state_type::HashLen33to64(const unsigned char *s, size_t len)
                    e + Rotate(f + a, 18) + g, mul);
 }
 
-std::pair<uint64_t, uint64_t> farmhash::state_type::WeakHashLen32WithSeeds(
+inline std::pair<uint64_t, uint64_t>
+farmhash::state_type::WeakHashLen32WithSeeds(
     const uint64_t s[], uint64_t a, uint64_t b) {
   a += s[0];
   b = Rotate(b + a + s[3], 21);
@@ -372,7 +377,7 @@ std::pair<uint64_t, uint64_t> farmhash::state_type::WeakHashLen32WithSeeds(
   return {a + s[3], b + c};
 }
 
-void farmhash::state_type::initialize() {
+inline void farmhash::state_type::initialize() {
   x_ = kSeed;
   y_ = kSeed * k1 + 113;
   z_ = ShiftMix(y_ * k2 + 113) * k2;
@@ -381,7 +386,7 @@ void farmhash::state_type::initialize() {
   x_ = x_ * k2 + buffer_[0];
 }
 
-void farmhash::state_type::mix() {
+inline void farmhash::state_type::mix() {
   x_ = Rotate(x_ + y_ + v_.first + buffer_[1], 37) * k1;
   y_ = Rotate(y_ + v_.second + buffer_[6], 42) * k1;
   x_ ^= w_.second;
@@ -392,7 +397,7 @@ void farmhash::state_type::mix() {
   std::swap(z_, x_);
 }
 
-size_t farmhash::state_type::final_mix(size_t len) {
+inline size_t farmhash::state_type::final_mix(size_t len) {
   // FarmHash's final mix operates on the final 64 bytes of input,
   // in order. buffer_ holds the last 64 bytes, but because it
   // acts as a circular buffer, we have to rotate it to put them

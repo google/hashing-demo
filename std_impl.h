@@ -257,13 +257,13 @@ T* adl_pointer_from(T* ptr) { return ptr; }
 template <>
 struct is_contiguous_iterator<string::iterator> : public true_type {};
 
-char* adl_pointer_from(string::iterator i) { return &*i; }
+inline char* adl_pointer_from(string::iterator i) { return &*i; }
 
 template <>
 struct is_contiguous_iterator<string::const_iterator>
     : public true_type {};
 
-const char* adl_pointer_from(string::const_iterator i) { return &*i; }
+inline const char* adl_pointer_from(string::const_iterator i) { return &*i; }
 
 // Implementation of N3911, provided here for convenience.
 // ==========================================================================
