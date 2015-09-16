@@ -28,5 +28,9 @@ add_test(std_test std_test)
 add_executable(farmhash_golden_test farmhash_golden_test.cc)
 add_test(farmhash_golden_test farmhash_golden_test)
 
+add_executable(type-invariant_test type-invariant_test.cc)
+target_link_libraries(type-invariant_test gtest_main)
+add_test(type-invariant_test type-invariant_test)
+
 add_executable(benchmarks benchmarks.cc)
 target_link_libraries(benchmarks benchmark)
