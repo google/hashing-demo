@@ -238,7 +238,8 @@ HashCode hash_tuple(HashCode code, const Tuple& t, index_sequence<Is...>) {
 
 template <typename HashCode, typename... Ts>
 HashCode hash_value(HashCode code, const tuple<Ts...>& t) {
-  return hash_tuple(std::move(code), t, make_index_sequence<sizeof...(Ts)>());
+  return detail::hash_tuple(
+      std::move(code), t, make_index_sequence<sizeof...(Ts)>());
 }
 
 // Dummy implementation of N4183 (contiguous iterator utilities), so
