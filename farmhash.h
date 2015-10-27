@@ -139,89 +139,19 @@ inline farmhash::farmhash(state_type* s)
     : state_(s),
       buffer_next_(reinterpret_cast<unsigned char*>(s->buffer_)) {}
 
-// Recursive variadic case for hash_combine: mix 'value' into the hash state,
-// and then recurse on 'values'.
-template <typename T, typename... Ts>
-farmhash hash_combine(farmhash hash_code, const T& value, const Ts&... values) {
-  return hash_combine(
-      // Use tag dispatching to select how to mix in 'value': for uniquely-
-      // represented types we can process the bytes directly, and for the
-      // rest we must invoke hash_value().
-      hash_value_or_bytes(std::move(hash_code), value,
-                          std_::is_uniquely_represented<T>{}),
-      values...);
+template <typename... Ts>
+farmhash hash_combine(farmhash hash_code, const Ts&... values) {
+  return std_::simple_hash_combine(std::move(hash_code), values...);
 }
-
-// Base case for the hash_combine variadic recursion: hash_combine of no
-// values is a no-op.
-inline farmhash hash_combine(farmhash hash_code) { return hash_code; }
-
-// Mixes 'value' into the hash state. The last parameter is a dispatching
-// tag that indicates that 'T' is uniquely-represented.
-template <typename T>
-farmhash hash_value_or_bytes(
-    farmhash hash_code, const T& value, const std::true_type&) {
-  unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
-  return hash_combine_range(std::move(hash_code), bytes, bytes + sizeof(value));
-}
-
-// Mixes 'value' into the hash state. The last parameter is a dispatching tag
-// that indicates that 'T' is not uniquely-represented.
-template <typename T>
-farmhash hash_value_or_bytes(
-    farmhash hash_code, const T& value, const std::false_type&) {
-  using std_::hash_value;
-  return hash_value(std::move(hash_code), value);
-}
-
-// Trait class used for tag dispatching. If 'InputIterator' is a contiguous
-// iterator over uniquely-represented values, this is derived from true_type,
-// and otherwise it's derived from false_type.
-template <typename InputIterator>
-struct can_hash_range_as_bytes
-    : public std::integral_constant<
-          bool, std_::is_contiguous_iterator<InputIterator>::value &&
-                    std_::is_uniquely_represented<typename std::iterator_traits<
-                        InputIterator>::value_type>::value> {};
 
 template <typename InputIterator>
 farmhash hash_combine_range(
     farmhash hash_code, InputIterator begin, InputIterator end) {
-  // Use tag dispatching to determine whether the range can be hashed by
-  // hashing all the bytes, or if it must be hashed iteratively.
-  return hash_range_or_bytes(std::move(hash_code), begin, end,
-                             can_hash_range_as_bytes<InputIterator>{});
+  return std_::simple_hash_combine_range(std::move(hash_code), begin, end);
 }
 
-// Mixes all values in the range [begin, end) into the hash state.
-// The last parameter is a dispatching tag that indicates that the
-// range can be safely hashed at the byte level.
-template <typename InputIterator>
-farmhash hash_range_or_bytes(farmhash hash_code, InputIterator begin,
-                             InputIterator end, const std::true_type&) {
-  using std_::adl_pointer_from;
-  const unsigned char* begin_ptr =
-      reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
-  const unsigned char* end_ptr =
-      reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
-  return hash_combine_range(std::move(hash_code), begin_ptr, end_ptr);
-}
-
-// Mixes all values in the range [begin, end) into the hash state.
-// The last parameter is a dispatching tag that indicates that the
-// range must be hashed iteratively.
-template <typename InputIterator>
-farmhash hash_range_or_bytes(farmhash hash_code, InputIterator begin,
-                             InputIterator end, const std::false_type&) {
-  while (begin != end) {
-    hash_code = hash_combine(std::move(hash_code), *begin);
-    ++begin;
-  }
-  return hash_code;
-}
-
-// Fundamental base case for all the above recursions: mixes the given range
-// of bytes into the hash state.
+// Fundamental base case for hash recursion: mixes the given range of bytes
+// into the hash state.
 inline farmhash hash_combine_range(
     farmhash hash_code, const unsigned char* begin, const unsigned char* end) {
   unsigned char* const buffer =

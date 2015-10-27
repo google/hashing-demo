@@ -267,6 +267,111 @@ struct is_contiguous_iterator<string::const_iterator>
 
 inline const char* adl_pointer_from(string::const_iterator i) { return &*i; }
 
+// Convenience helper functions for implementing hash algorithms
+// ==========================================================================
+
+// Forward declarations for the mutual recursion below.
+template <typename HashCode>
+HashCode simple_hash_combine(HashCode hash_code);
+
+template <typename HashCode, typename T, typename... Ts>
+HashCode simple_hash_combine(
+    HashCode hash_code, const T& value, const Ts&... values);
+
+namespace detail {
+
+// Mixes 'value' into the hash state. The last parameter is a dispatching
+// tag that indicates that 'T' is uniquely-represented.
+template <typename HashCode, typename T>
+HashCode hash_value_or_bytes(
+    HashCode hash_code, const T& value, const std::true_type&) {
+  unsigned char const* bytes = reinterpret_cast<unsigned char const*>(&value);
+  return hash_combine_range(std::move(hash_code), bytes, bytes + sizeof(value));
+}
+
+// Mixes 'value' into the hash state. The last parameter is a dispatching tag
+// that indicates that 'T' is not uniquely-represented.
+template <typename HashCode, typename T>
+HashCode hash_value_or_bytes(
+    HashCode hash_code, const T& value, const std::false_type&) {
+  using std_::hash_value;
+  return hash_value(std::move(hash_code), value);
+}
+
+// Trait class used for tag dispatching. If 'InputIterator' is a contiguous
+// iterator over uniquely-represented values, this is derived from true_type,
+// and otherwise it's derived from false_type.
+template <typename InputIterator>
+struct can_hash_range_as_bytes
+    : public std::integral_constant<
+          bool, std_::is_contiguous_iterator<InputIterator>::value &&
+                    std_::is_uniquely_represented<typename std::iterator_traits<
+                        InputIterator>::value_type>::value> {};
+
+// Mixes all values in the range [begin, end) into the hash state.
+// The last parameter is a dispatching tag that indicates that the
+// range can be safely hashed at the byte level.
+template <typename HashCode, typename InputIterator>
+HashCode hash_range_or_bytes(HashCode hash_code, InputIterator begin,
+                             InputIterator end, const std::true_type&) {
+  using std_::adl_pointer_from;
+  const unsigned char* begin_ptr =
+      reinterpret_cast<const unsigned char*>(adl_pointer_from(begin));
+  const unsigned char* end_ptr =
+      reinterpret_cast<const unsigned char*>(adl_pointer_from(end));
+  return hash_combine_range(std::move(hash_code), begin_ptr, end_ptr);
+}
+
+// Mixes all values in the range [begin, end) into the hash state.
+// The last parameter is a dispatching tag that indicates that the
+// range must be hashed iteratively.
+template <typename HashCode, typename InputIterator>
+HashCode hash_range_or_bytes(HashCode hash_code, InputIterator begin,
+                             InputIterator end, const std::false_type&) {
+  while (begin != end) {
+    hash_code = simple_hash_combine(std::move(hash_code), *begin);
+    ++begin;
+  }
+  return hash_code;
+}
+
+}  // namespace detail
+
+// Base case for the simple_hash_combine variadic recursion:
+// simple_hash_combine of no values is a no-op.
+template <typename HashCode>
+HashCode simple_hash_combine(HashCode hash_code) { return hash_code; }
+
+// Recursive variadic case for simple_hash_combine: mix 'value' into the hash
+// state, and then recurse on 'values'.
+template <typename HashCode, typename T, typename... Ts>
+HashCode simple_hash_combine(
+    HashCode hash_code, const T& value, const Ts&... values) {
+  return simple_hash_combine(
+      // Use tag dispatching to select how to mix in 'value': for uniquely-
+      // represented types we can process the bytes directly, and for the
+      // rest we must invoke hash_value().
+      detail::hash_value_or_bytes(std::move(hash_code), value,
+                                  std_::is_uniquely_represented<T>{}),
+      values...);
+}
+
+template <typename HashCode, typename InputIterator>
+HashCode simple_hash_combine_range(
+    HashCode hash_code, InputIterator begin, InputIterator end) {
+  static_assert(
+      !(std::is_pointer<InputIterator>::value &&
+        std::is_same<std::remove_const_t<std::remove_pointer_t<InputIterator>>,
+                     unsigned char*>::value),
+      "simple_hash_combine_range does not accept unsigned char*.");
+
+  // Use tag dispatching to determine whether the range can be hashed by
+  // hashing all the bytes, or if it must be hashed iteratively.
+  return detail::hash_range_or_bytes(
+      std::move(hash_code), begin, end,
+      detail::can_hash_range_as_bytes<InputIterator>{});
+}
+
 // Implementation of N3911, provided here for convenience.
 // ==========================================================================
 
